@@ -1,8 +1,33 @@
 import pygame
 from random import randrange
-pygame.init()
-#import sys
-#import pygameMenu
+#menu = pygameMenu.TextMenu(screen, 200, 200,pygame.font.Font('arial',34), "Fucker")
+## k - король
+## f - королева (ферзь)
+## b - епископ (слон)
+## r - крепость (ладья)
+## h - рыцарь (конь)
+## p - пешка
+def draw_grid():
+    for cells_x in range(8):
+        for cells_y in range(8):
+            pygame.draw.rect(screen,(0,0,0),(FIELD_START_POS[0] + CELL_SIZE*cells_x, FIELD_START_POS[1] + CELL_SIZE*cells_y, CELL_SIZE, CELL_SIZE),1)
+
+
+def draw_figures():
+    for figure in black_figures:
+        x = figure[0] * CELL_SIZE + FIGURE_START_POS[0]
+        y = figure[1] * CELL_SIZE + FIGURE_START_POS[1]
+        pygame.draw.rect(screen,(0,0,0),(x, y, FIGURE_SIZE, FIGURE_SIZE), 0)
+        figure_letter = text_font.render(field[figure[1]][figure[0]],0, COLOR_BACKGROUND)
+        screen.blit(figure_letter, (x+MARGIN, y+MARGIN))        
+    for figure in white_figures:
+        x = figure[0] * CELL_SIZE + FIGURE_START_POS[0]
+        y = figure[1]*CELL_SIZE + FIGURE_START_POS[1]
+        pygame.draw.rect(screen,(0,0,0),(x, y, FIGURE_SIZE, FIGURE_SIZE), 1)
+        figure_letter = text_font.render(field[figure[1]][figure[0]],0, COLOR_TEXT)
+        screen.blit(figure_letter, (x+MARGIN, y+MARGIN))
+
+
 SIZE_X, SIZE_Y = 640, 480
 DELAY = 30
 COLOR_BACKGROUND = [255, 255, 255]
@@ -15,83 +40,36 @@ CELL_SIZE = int(FIELD_LENGTH/8)
 MARGIN = 5 # Расстояние откраев ячейки до фигуры
 FIGURE_SIZE = CELL_SIZE - MARGIN*2
 FIGURE_START_POS = [FIELD_START_POS[0] + MARGIN, FIELD_START_POS[1] + MARGIN]
-text_font = pygame.font.SysFont('arial', 24)
 
-screen = pygame.display.set_mode((SIZE_X, SIZE_Y))
-pygame.display.flip()
-screen.fill([255,255,255])
+field = [
+    ['r','k','b','q','k','b','h','r'],
+    ['p','p','p','p','p','p','p','p'],
+    [' ',' ',' ',' ',' ',' ',' ',' '],
+    [' ',' ',' ',' ',' ',' ',' ',' '],
+    [' ',' ',' ',' ',' ',' ',' ',' '],
+    [' ',' ',' ',' ',' ',' ',' ',' '],
+    ['p','p','p','p','p','p','p','p'],
+    ['r','h','b','q','k','b','h','r'],
+    ]
 
-#menu = pygameMenu.TextMenu(screen, 200, 200,pygame.font.Font('arial',34), "Fucker")
-pygame.display.set_caption('CHESS')
-game = True
+black_figures = [[j,i] for j in range(8) for i in range(6,8)]
+white_figures = [[j,i] for j in range(8) for i in range(2)]
 selected_cell = [0,0]
 selected_figure = [0,0]
+game = True
 selected = False
 black_step = False
 white_step = True
-
-black_figures = []
-white_figures = []
-
-field = f = [[0 for i in range(10)] for j in range(10)]
-
-class ChessFigure():
-
-    def __init__(self, x, y, type, side):
-        self.x = x
-        self.y = y
-        self.type = type
-        self.side = side
-
-
-def check_position(figure_pos):# Проверяет, в какие точки поля может пойти переданная фигура, и возвращает список досткпных точек
-    if 1:
-        
-        True
-    else:
-        return False
-
-
-def draw_grid():
-    for cells_x in range(8):
-        for cells_y in range(8):
-            pygame.draw.rect(screen,(0,0,0),(FIELD_START_POS[0] + CELL_SIZE*cells_x, FIELD_START_POS[1] + CELL_SIZE*cells_y, CELL_SIZE, CELL_SIZE),1)
-
-def draw_figures():
-    for figure in black_figures:
-        pygame.draw.rect(screen,(0,0,0),(figure[0]+MARGIN, figure[1]+MARGIN, FIGURE_SIZE, FIGURE_SIZE) ,0)
-    for figure in white_figures:
-        pygame.draw.rect(screen,(0,0,0),(figure[0]+MARGIN, figure[1]+MARGIN, FIGURE_SIZE, FIGURE_SIZE), 1)
-
-        
-def init_white_figures():
-    figures = []
-    for cells_x in range(8):
-        for cells_y in [0,1]:
-            x = FIELD_START_POS[0] + CELL_SIZE*cells_x
-            y = FIELD_START_POS[1] + CELL_SIZE*cells_y
-            figures.append([x,y])
-    return figures
-            
-
-def init_black_figures():
-    figures = []
-    for cells_x in range(8):
-        for cells_y in [6,7]:
-            x = FIELD_START_POS[0] + CELL_SIZE*cells_x
-            y = FIELD_START_POS[1] + CELL_SIZE*cells_y
-            figures.append([x,y])
-    return figures
-
-black_figures = init_black_figures()
-white_figures = init_white_figures()
-    
+pygame.init()
+pygame.display.set_caption('CHESS')
+screen = pygame.display.set_mode((SIZE_X, SIZE_Y))
+text_font = pygame.font.SysFont('arial', 24)
 
 while game:
     pygame.time.delay(DELAY)
     screen.fill(COLOR_BACKGROUND)
     if selected:
-        pygame.draw.rect(screen,(0,200,0),(selected_cell[0],selected_cell[1],CELL_SIZE,CELL_SIZE),4)
+        pygame.draw.rect(screen,(0,200,0),(selected_cell[0]*CELL_SIZE+FIELD_START_POS[0],selected_cell[1]*CELL_SIZE+FIELD_START_POS[1],CELL_SIZE,CELL_SIZE),4)
     for event in pygame.event.get():
 
         if event.type == pygame.QUIT:
@@ -100,31 +78,48 @@ while game:
             pass
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
-                selected_cell[0] = (pygame.mouse.get_pos()[0] // CELL_SIZE) * CELL_SIZE + 5
-                selected_cell[1] = (pygame.mouse.get_pos()[1] // CELL_SIZE) * CELL_SIZE + 5
-##                if CELL_SIZE*9 < selected_cell[0] < CELL_SIZE*10 and CELL_SIZE*9 < selected_cell[1] < CELL_SIZE*:
-##                    pass
-                if selected_cell in white_figures and white_step:
-                    selected_figure = selected_cell[:]
-                    print('selected white',selected_cell)
+                x = ((pygame.mouse.get_pos()[0] - FIELD_START_POS[0]) // CELL_SIZE)
+                y = ((pygame.mouse.get_pos()[1] - FIELD_START_POS[1]) // CELL_SIZE)
+                if [x,y] in white_figures and white_step:
+                    selected_cell = [x,y]
+                    print('selected white',field[y][x])
                     selected = True
-                elif selected_cell in black_figures and black_step:
-                    selected_figure = selected_cell[:]
-                    print('selected black',selected_cell)
+                elif [x,y] in black_figures and black_step:
+                    selected_cell = [x,y]
+                    print('selected black',field[y][x])
                     selected = True
                 else:
-                    if selected_figure != [0,0] and white_step:
-                        white_figures[white_figures.index(selected_figure)] = selected_cell[:]
-                        selected_figure = [0,0]
+                    if selected_cell != [0,0] and white_step:
+                        
                         selected = False
-                        white_step, black_step = black_step, white_step
-                    elif selected_figure != [0,0] and black_step:
-                        black_figures[black_figures.index(selected_figure)] = selected_cell[:]
-                        selected_figure = [0,0]
-                        black_step, white_step = white_step, black_step
-                        selected = False
-                    else:
-                        selected = False
+                    white_step, black_step = black_step, white_step
+                        selected_cell = [0,0]
+                    
+
+
+##
+##                    
+##                if selected_cell in white_figures and white_step:
+##                    selected_figure = selected_cell[:]
+##                    print('selected white',selected_cell)
+##                    selected = True
+##                elif selected_cell in black_figures and black_step:
+##                    selected_figure = selected_cell[:]
+##                    print('selected black',selected_cell)
+##                    selected = True
+##                else:
+##                    if selected_figure != [0,0] and white_step:
+##                        white_figures[white_figures.index(selected_figure)] = selected_cell[:]
+##                        selected_figure = [0,0]
+##                        selected = False
+##                        white_step, black_step = black_step, white_step
+##                    elif selected_figure != [0,0] and black_step:
+##                        black_figures[black_figures.index(selected_figure)] = selected_cell[:]
+##                        selected_figure = [0,0]
+##                        black_step, white_step = white_step, black_step
+##                        selected = False
+##                    else:
+##                        selected = False
             elif event.button == 3:
                 x = (pygame.mouse.get_pos()[0] // CELL_SIZE) * CELL_SIZE + 5
                 y = (pygame.mouse.get_pos()[1] // CELL_SIZE) * CELL_SIZE + 5
@@ -142,8 +137,6 @@ while game:
     pygame.display.flip()
 pygame.quit()
                 
-
-
 #  print(pygame.mouse.get_pos()) позиция мыши
 #  rint(event.buttons[0]) нажата ли левая кнопка мыши
 
