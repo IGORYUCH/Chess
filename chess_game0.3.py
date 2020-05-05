@@ -54,8 +54,8 @@ field = [
 
 black_figures = [[j,i] for j in range(8) for i in range(6,8)]
 white_figures = [[j,i] for j in range(8) for i in range(2)]
-selected_cell = [0,0]
-selected_figure = [0,0]
+selected_cell = None
+selected_figure = None
 game = True
 selected = False
 black_step = False
@@ -80,46 +80,44 @@ while game:
             if event.button == 1:
                 x = ((pygame.mouse.get_pos()[0] - FIELD_START_POS[0]) // CELL_SIZE)
                 y = ((pygame.mouse.get_pos()[1] - FIELD_START_POS[1]) // CELL_SIZE)
-                if [x,y] in white_figures and white_step:
-                    selected_cell = [x,y]
+                selected_cell = [x,y]
+                if selected_cell in white_figures and white_step:
+                    selected_figure = selected_cell[:]
                     print('selected white',field[y][x])
                     selected = True
-                elif [x,y] in black_figures and black_step:
-                    selected_cell = [x,y]
+                elif selected_cell in black_figures and black_step:
+                    selected_figure = selected_cell
                     print('selected black',field[y][x])
                     selected = True
                 else:
-                    if selected_cell != [0,0] and white_step:
-                        
-                        selected = False
-                    white_step, black_step = black_step, white_step
-                        selected_cell = [0,0]
-                    
-
-
-##
-##                    
-##                if selected_cell in white_figures and white_step:
-##                    selected_figure = selected_cell[:]
-##                    print('selected white',selected_cell)
-##                    selected = True
-##                elif selected_cell in black_figures and black_step:
-##                    selected_figure = selected_cell[:]
-##                    print('selected black',selected_cell)
-##                    selected = True
-##                else:
-##                    if selected_figure != [0,0] and white_step:
-##                        white_figures[white_figures.index(selected_figure)] = selected_cell[:]
-##                        selected_figure = [0,0]
-##                        selected = False
-##                        white_step, black_step = black_step, white_step
-##                    elif selected_figure != [0,0] and black_step:
-##                        black_figures[black_figures.index(selected_figure)] = selected_cell[:]
-##                        selected_figure = [0,0]
-##                        black_step, white_step = white_step, black_step
-##                        selected = False
-##                    else:
-##                        selected = False
+                    if selected_figure != None and white_step: # Если выбрана фигура и ячейка
+                        if selected_cell in black_figures: 
+                            black_figures.remove(selected_cell) # Удаляем фигуру у противника
+                            field[selected_figure[1]][selected_figure[0]] = field[selected_cell[1]][selected_cell[0]] # Перемещаем свою фигуру на место удаленной
+                            field[selected_figure[1]][selected_figure[0]] = ' ' # Очищаем клетку перемещенной фигуры
+                            white_figures[white_figures.index(selected_figure)] = selected_cell[:] # Меняем координаты выбранной фигуры на координаты выбранной ячейки
+                            white_step, black_step = black_step, white_step
+                            selected,selected_figure,selected_cell = False,None,None
+                        else:
+                            field[selected_cell[1]][selected_cell[0]] = field[selected_figure[1]][selected_figure[0]]
+                            field[selected_figure[1]][selected_figure[0]] = ' '
+                            white_figures[white_figures.index(selected_figure)] = selected_cell[:]
+                            white_step, black_step = black_step, white_step
+                            selected,selected_figure,selected_cell = False,None,None
+                    elif selected_figure != None and black_step:
+                        if selected_cell in white_figures:
+                            white_figures.remove(selected_cell)
+                            field[selected_figure[1]][selected_figure[0]] = field[selected_cell[1]][selected_cell[0]]
+                            field[selected_figure[1]][selected_figure[0]] = ' '
+                            black_figures[black_figures.index(selected_figure)] = selected_cell[:]
+                            white_step, black_step = black_step, white_step
+                            selected,selected_figure,selected_cell = False,None,None
+                        else:
+                            black_figures[selected_cell[1]][selected_cell[0]] = field[selected_figure[1]][selected_figure[0]]
+                            field[selected_figure[1]][selected_figure[0]] = ' '
+                            black_figures[black_figures.index(selected_figure)] = selected_cell[:]
+                            white_step, black_step = black_step, white_step
+                            selected,selected_figure,selected_cell = False,None,None
             elif event.button == 3:
                 x = (pygame.mouse.get_pos()[0] // CELL_SIZE) * CELL_SIZE + 5
                 y = (pygame.mouse.get_pos()[1] // CELL_SIZE) * CELL_SIZE + 5
