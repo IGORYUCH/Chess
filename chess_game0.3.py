@@ -13,6 +13,16 @@ def draw_grid():
             pygame.draw.rect(screen,(0,0,0),(FIELD_START_POS[0] + CELL_SIZE*cells_x, FIELD_START_POS[1] + CELL_SIZE*cells_y, CELL_SIZE, CELL_SIZE),1)
 
 
+
+
+
+
+def check_position(cell):
+    # cell = field[y][x] -> 'f','p'...
+    pass
+    
+
+
 def draw_figures():
     for figure in black_figures:
         x = figure[0] * CELL_SIZE + FIGURE_START_POS[0]
@@ -26,6 +36,26 @@ def draw_figures():
         pygame.draw.rect(screen,(0,0,0),(x, y, FIGURE_SIZE, FIGURE_SIZE), 1)
         figure_letter = text_font.render(field[figure[1]][figure[0]],0, COLOR_TEXT)
         screen.blit(figure_letter, (x+MARGIN, y+MARGIN))
+
+
+def take_figure(taker_figures, opponent_figures):
+    global selected, selected_figure, selected_cell, white_step, black_step
+    opponent_figures.remove(selected_cell) # Удаляем фигуру у противника
+    field[selected_cell[1]][selected_cell[0]] = field[selected_figure[1]][selected_figure[0]] # Перемещаем свою фигуру на место удаленной
+    field[selected_figure[1]][selected_figure[0]] = ' ' # Очищаем клетку перемещенной фигуры
+    taker_figures[taker_figures.index(selected_figure)] = selected_cell[:] # Меняем координаты выбранной фигуры на координаты выбранной ячейки
+    white_step, black_step = black_step, white_step
+    selected,selected_figure,selected_cell = False, None, None
+
+
+def move_figure(player_figures):
+    global selected, selected_figure, selected_cell, white_step, black_step
+    field[selected_cell[1]][selected_cell[0]] = field[selected_figure[1]][selected_figure[0]] # Перемещаем фигуру на новое место
+    field[selected_figure[1]][selected_figure[0]] = ' ' # Очищаем клетку перемещенной фигуры
+    player_figures[player_figures.index(selected_figure)] = selected_cell[:]
+    white_step, black_step = black_step, white_step
+    selected,selected_figure,selected_cell = False, None, None
+
 
 
 SIZE_X, SIZE_Y = 640, 480
@@ -91,33 +121,15 @@ while game:
                     selected = True
                 else:
                     if selected_figure != None and white_step: # Если выбрана фигура и ячейка
-                        if selected_cell in black_figures: 
-                            black_figures.remove(selected_cell) # Удаляем фигуру у противника
-                            field[selected_figure[1]][selected_figure[0]] = field[selected_cell[1]][selected_cell[0]] # Перемещаем свою фигуру на место удаленной
-                            field[selected_figure[1]][selected_figure[0]] = ' ' # Очищаем клетку перемещенной фигуры
-                            white_figures[white_figures.index(selected_figure)] = selected_cell[:] # Меняем координаты выбранной фигуры на координаты выбранной ячейки
-                            white_step, black_step = black_step, white_step
-                            selected,selected_figure,selected_cell = False,None,None
+                        if selected_cell in black_figures:
+                            take_figure(white_figures, black_figures)
                         else:
-                            field[selected_cell[1]][selected_cell[0]] = field[selected_figure[1]][selected_figure[0]]
-                            field[selected_figure[1]][selected_figure[0]] = ' '
-                            white_figures[white_figures.index(selected_figure)] = selected_cell[:]
-                            white_step, black_step = black_step, white_step
-                            selected,selected_figure,selected_cell = False,None,None
+                            move_figure(white_figures)
                     elif selected_figure != None and black_step:
                         if selected_cell in white_figures:
-                            white_figures.remove(selected_cell)
-                            field[selected_figure[1]][selected_figure[0]] = field[selected_cell[1]][selected_cell[0]]
-                            field[selected_figure[1]][selected_figure[0]] = ' '
-                            black_figures[black_figures.index(selected_figure)] = selected_cell[:]
-                            white_step, black_step = black_step, white_step
-                            selected,selected_figure,selected_cell = False,None,None
+                            take_figure(black_figures, white_figures)
                         else:
-                            black_figures[selected_cell[1]][selected_cell[0]] = field[selected_figure[1]][selected_figure[0]]
-                            field[selected_figure[1]][selected_figure[0]] = ' '
-                            black_figures[black_figures.index(selected_figure)] = selected_cell[:]
-                            white_step, black_step = black_step, white_step
-                            selected,selected_figure,selected_cell = False,None,None
+                            move_figure(black_figures)
             elif event.button == 3:
                 x = (pygame.mouse.get_pos()[0] // CELL_SIZE) * CELL_SIZE + 5
                 y = (pygame.mouse.get_pos()[1] // CELL_SIZE) * CELL_SIZE + 5
