@@ -7,7 +7,16 @@ from random import randrange
 ## r - крепость (ладья)
 ## h - рыцарь (конь)
 ## p - пешка
-def draw_grid():
+grid = 0
+
+grid_colors = {0:(200,200,200),1:(50,50,50)}
+def draw_field():
+    global grid
+    for x in range(8):
+        for y in range(8):
+            grid +=1
+            pygame.draw.rect(screen,grid_colors[grid%2],(FIELD_START_POS[0] + CELL_SIZE*x, FIELD_START_POS[1] + CELL_SIZE*y, CELL_SIZE, CELL_SIZE),0)
+        grid +=1
     for x in range(8):
         for y in range(8):
             pygame.draw.rect(screen,(0,0,0),(FIELD_START_POS[0] + CELL_SIZE*x, FIELD_START_POS[1] + CELL_SIZE*y, CELL_SIZE, CELL_SIZE),1)
@@ -243,6 +252,7 @@ def draw_figures():
     for figure in white_figures:
         x = figure[0] * CELL_SIZE + FIGURE_START_POS[0]
         y = figure[1]*CELL_SIZE + FIGURE_START_POS[1]
+        pygame.draw.rect(screen,(255,255,255),(x, y, FIGURE_SIZE, FIGURE_SIZE), 0)
         pygame.draw.rect(screen,(0,0,0),(x, y, FIGURE_SIZE, FIGURE_SIZE), 1)
         figure_letter = text_font.render(field[figure[1]][figure[0]],0, COLOR_TEXT)
         screen.blit(figure_letter, (x+MARGIN, y+MARGIN))
@@ -265,7 +275,6 @@ def move_figure(player_figures):
     player_figures[player_figures.index(selected_figure)] = selected_cell[:]
     white_step, black_step = black_step, white_step
     selected,selected_figure,selected_cell = False, None, None
-
 
 
 SIZE_X, SIZE_Y = 640, 480
@@ -304,6 +313,8 @@ game = True
 selected = False
 black_step = False
 white_step = True
+white_check = False
+black_check = False
 pygame.init()
 pygame.display.set_caption('CHESS')
 screen = pygame.display.set_mode((SIZE_X, SIZE_Y))
@@ -312,6 +323,7 @@ text_font = pygame.font.SysFont('arial', 24)
 while game:
     pygame.time.delay(DELAY)
     screen.fill(COLOR_BACKGROUND)
+    draw_field()
     if selected:
         pygame.draw.rect(screen, COLOR_GREEN, (selected_cell[0]*CELL_SIZE + FIELD_START_POS[0],selected_cell[1]*CELL_SIZE + FIELD_START_POS[1],CELL_SIZE,CELL_SIZE), 4)
         for cell in admissible_positions:
@@ -326,7 +338,7 @@ while game:
             if event.button == 1:
                 x = ((pygame.mouse.get_pos()[0] - FIELD_START_POS[0]) // CELL_SIZE)
                 y = ((pygame.mouse.get_pos()[1] - FIELD_START_POS[1]) // CELL_SIZE)
-                selected_cell = [x,y]
+                selected_cell = [x, y]
                 if selected_cell in white_figures and white_step:
                     selected_figure = selected_cell[:]
                     admissible_positions = check_positions(selected_figure[:], white_figures, black_figures)
@@ -339,15 +351,19 @@ while game:
                     selected = True
                 else:
                     if selected_figure != None and white_step: # Если выбрана фигура и ячейка
-                        if selected_cell in black_figures:
+                        if selected_cell in black_figures and selected_cell in admissible_positions:
                             take_figure(white_figures, black_figures)
-                        else:
+                        elif selected_cell in admissible_positions:
                             move_figure(white_figures)
-                    elif selected_figure != None and black_step:
-                        if selected_cell in white_figures:
-                            take_figure(black_figures, white_figures)
                         else:
+                            selected = False
+                    elif selected_figure != None and black_step:
+                        if selected_cell in white_figures and selected_cell in admissible_positions:
+                            take_figure(black_figures, white_figures)
+                        elif selected_cell in admissible_positions:
                             move_figure(black_figures)
+                        else:
+                            selected = False
             elif event.button == 3:
                 x = (pygame.mouse.get_pos()[0] // CELL_SIZE) * CELL_SIZE + 5
                 y = (pygame.mouse.get_pos()[1] // CELL_SIZE) * CELL_SIZE + 5
@@ -355,12 +371,14 @@ while game:
                     print('deselected', selected_cell)
                     selected = False
                     
-    white_text = text_font.render('white step: ' + str(white_step), 0, COLOR_TEXT)
-    black_text = text_font.render('black step: ' + str(black_step), 0, COLOR_TEXT)
-    screen.blit(white_text,(410,20))
-    screen.blit(black_text,(410,50))
-    
-    draw_grid()
+    step_white = text_font.render('white step: ' + str(white_step), 0, COLOR_TEXT)
+    step_black = text_font.render('black step: ' + str(black_step), 0, COLOR_TEXT)
+    check_white = text_font.render('white check: ' + str(white_check), 0, COLOR_TEXT)
+    check_black = text_font.render('black check: ' + str(black_check), 0, COLOR_TEXT)
+    screen.blit(step_white,(410, 20))
+    screen.blit(step_black,(410, 50))
+    screen.blit(check_white,(410, 100))
+    screen.blit(check_black, (410, 130))
     draw_figures()    
     pygame.display.flip()
 pygame.quit()
