@@ -16,9 +16,9 @@ def check_cell(cell, opponent_figures):
 def check_pawn(cell, opponent_figures):
     admissible = []
     if opponent_figures == black_figures:
-        direction, start = 1, 1
-    else:
         direction, start = -1, 6
+    else:
+        direction, start = 1, 1
     if cell[1] == start:
         for x,y in ([cell[0], cell[1] + 1*direction], [cell[0], cell[1] + 2*direction]):
             if check_cell([x, y], opponent_figures) == 1:
@@ -227,34 +227,18 @@ def check_positions(cell, player_figures, opponent_figures):
         admissible = check_king(cell, opponent_figures)
     return admissible
     
-
-def draw_figures2():
-    for figure in black_figures:
-        x = figure[0] * CELL_SIZE + FIGURE_START_POS[0]
-        y = figure[1] * CELL_SIZE + FIGURE_START_POS[1]
-        pygame.draw.rect(screen,(0,0,0),(x, y, FIGURE_SIZE, FIGURE_SIZE), 0)
-        figure_letter = text_font.render(field[figure[1]][figure[0]],0, COLOR_BACKGROUND)
-        screen.blit(figure_letter, (x+MARGIN, y+MARGIN))        
-    for figure in white_figures:
-        x = figure[0] * CELL_SIZE + FIGURE_START_POS[0]
-        y = figure[1]*CELL_SIZE + FIGURE_START_POS[1]
-        pygame.draw.rect(screen,(255,255,255),(x, y, FIGURE_SIZE, FIGURE_SIZE), 0)
-        pygame.draw.rect(screen,(0,0,0),(x, y, FIGURE_SIZE, FIGURE_SIZE), 1)
-        figure_letter = text_font.render(field[figure[1]][figure[0]],0, COLOR_TEXT)
-        screen.blit(figure_letter, (x+MARGIN, y+MARGIN))
-
         
 def draw_figures():
     for figure in black_figures:
         x = figure[0] * CELL_SIZE + FIGURE_START_POS[0]
         y = figure[1] * CELL_SIZE + FIGURE_START_POS[1]
         if black_pictures[field[figure[1]][figure[0]]]:
-            screen.blit(black_pictures[field[figure[1]][figure[0]]], (x,y))       
+            screen.blit(black_pictures[field[figure[1]][figure[0]]], (x, y))       
     for figure in white_figures:
         x = figure[0] * CELL_SIZE + FIGURE_START_POS[0]
         y = figure[1] * CELL_SIZE + FIGURE_START_POS[1]
         if black_pictures[field[figure[1]][figure[0]]]:
-            screen.blit(white_pictures[field[figure[1]][figure[0]]], (x,y))
+            screen.blit(white_pictures[field[figure[1]][figure[0]]], (x, y))
 
 
 def take_figure(player_figures, opponent_figures):
@@ -276,44 +260,45 @@ def move_figure(player_figures):
     selected,selected_figure,selected_cell = False, None, None
 
 
-def init_pictures():
+def init_pictures(folder = 'pictures'):
 
     def init_picture(file,colorkey = (0,255,0)):
-        pic = pygame.transform.scale(pygame.image.load(file).convert(),(FIGURE_SIZE, FIGURE_SIZE))
-        pic.set_colorkey(colorkey)
-        return pic
+        picture = pygame.image.load(file).convert()
+        adjusted_picture = pygame.transform.scale(picture, (FIGURE_SIZE, FIGURE_SIZE))
+        adjusted_picture.set_colorkey(colorkey)
+        return adjusted_picture
 
         
     for black in ('p','r','h','b','q','k'):
         if black == 'p':
-            black_pictures[black] = init_picture('pictures/pawn_black.png')
+            black_pictures[black] = init_picture(folder + '/pawn_black.png')
         elif black == 'r':
-            black_pictures[black] = init_picture('pictures/rook_black.png')
+            black_pictures[black] = init_picture(folder + '/rook_black.png')
         elif black == 'h':
-            black_pictures[black] = init_picture('pictures/knight_black.png')
+            black_pictures[black] = init_picture(folder + '/knight_black.png')
         elif black == 'b':
-            black_pictures[black] = init_picture('pictures/bishop_black.png')
+            black_pictures[black] = init_picture(folder + '/bishop_black.png')
         elif black == 'q':
-            black_pictures[black] = init_picture('pictures/queen_black.png')
+            black_pictures[black] = init_picture(folder + '/queen_black.png')
         elif black == 'k':
-            black_pictures[black] = init_picture('pictures/king_black.png')
+            black_pictures[black] = init_picture(folder + '/king_black.png')
     for white in ('p','r','h','b','q','k'):
         if white == 'p':
-            white_pictures[white] = init_picture('pictures/pawn_white.png')
+            white_pictures[white] = init_picture(folder + '/pawn_white.png')
         elif white == 'r':
-            white_pictures[white] = init_picture('pictures/rook_white.png')
+            white_pictures[white] = init_picture(folder + '/rook_white.png')
         elif white == 'h':
-            white_pictures[white] = init_picture('pictures/knight_white.png')
+            white_pictures[white] = init_picture(folder + '/knight_white.png')
         elif white == 'b':
-            white_pictures[white] = init_picture('pictures/bishop_white.png')
+            white_pictures[white] = init_picture(folder + '/bishop_white.png')
         elif white == 'q':
-            white_pictures[white] = init_picture('pictures/queen_white.png')
+            white_pictures[white] = init_picture(folder + '/queen_white.png')
         elif white == 'k':
-            white_pictures[white] = init_picture('pictures/king_white.png')
+            white_pictures[white] = init_picture(folder + '/king_white.png')
         
 
 def init_field_screen():
-    grid = 0
+    grid = 1
     grid_colors = ((200,200,200),(50,50,50))
     for x in range(8):
         for y in range(8):
@@ -350,8 +335,8 @@ field = [
     ['r','h','b','q','k','b','h','r'],
     ]
 
-black_figures = [[j,i] for j in range(8) for i in range(6,8)]
-white_figures = [[j,i] for j in range(8) for i in range(2)]
+black_figures = [[j,i] for j in range(8) for i in range(2)]
+white_figures = [[j,i] for j in range(8) for i in range(6,8)]
 admissible_positions = []
 selected_cell = None
 selected_figure = None
