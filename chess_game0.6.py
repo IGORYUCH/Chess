@@ -13,13 +13,13 @@ def check_cell(cell, opponent_figures, field):
         return 0
 
 
-def check_opponent_king_check(figures, opponent_figures, field2):# Проверяет, бьет ли игрок короля своего оппонента
+def check_shah(opponent_figures, player_figures, field2):# Проверяет, бьет ли игрок короля своего оппонента
     for opponent_figure in opponent_figures:
         if field2[opponent_figure[1]][opponent_figure[0]] == 'k':
             opponent_king = opponent_figure[:]
             break
-    for figure in figures:
-        admissible = check_positions(figure, figures, opponent_figures, field2)
+    for figure in player_figures:
+        admissible = check_positions(figure, player_figures, opponent_figures, field2)
         if opponent_king in admissible:
             return True
     else:
@@ -231,7 +231,7 @@ def exclude_check_unprotected_positions(figure, figure_cell2, admissible, player
         field_copy[admissible_pos[1]][admissible_pos[0]] = figure
         field_copy[figure_cell2[1]][figure_cell2[0]] = ' '
         player_figures_copy[player_figures_copy.index(figure_cell2)] = admissible_pos[:]
-        future_check = check_opponent_king_check(opponent_figures, player_figures_copy, field_copy)
+        future_check = check_shah(player_figures_copy, opponent_figures, field_copy)
         if future_check:
             new_admissible.remove(admissible_pos)
     return new_admissible
@@ -427,26 +427,26 @@ while game:
                     if selected_figure != None and white_step: # Если выбрана фигура и ячейка
                         if selected_cell in black_figures and selected_cell in admissible_positions:
                             take_figure(white_figures, black_figures)
-                            black_check = check_opponent_king_check(white_figures, black_figures, field)
-                            white_check = check_opponent_king_check(black_figures, white_figures, field)
+                            black_check = check_shah(black_figures, white_figures, field)
+                            white_check = check_shah(white_figures, black_figures, field)
                             selected,selected_figure,selected_cell = False, None, None
                         elif selected_cell in admissible_positions:
                             move_figure(white_figures)
-                            black_check = check_opponent_king_check(white_figures, black_figures, field)
-                            white_check = check_opponent_king_check(black_figures, white_figures, field)
+                            black_check = check_shah(black_figures, white_figures, field)
+                            white_check = check_shah(white_figures, black_figures, field)
                             selected,selected_figure,selected_cell = False, None, None
                         else:
                             reset()
                     elif selected_figure != None and black_step:
                         if selected_cell in white_figures and selected_cell in admissible_positions:
                             take_figure(black_figures, white_figures)
-                            white_check = check_opponent_king_check(black_figures, white_figures, field)
-                            black_check = check_opponent_king_check(white_figures, black_figures, field)
+                            white_check = check_shah(white_figures, black_figures, field)
+                            black_check = check_shah(black_figures, white_figures, field)
                             selected,selected_figure,selected_cell = False, None, None
                         elif selected_cell in admissible_positions:
                             move_figure(black_figures)
-                            white_check = check_opponent_king_check(black_figures, white_figures, field)
-                            black_check = check_opponent_king_check(white_figures, black_figures, field)
+                            white_check = check_shah(white_figures, black_figures, field)
+                            black_check = check_shah(black_figures, white_figures, field)
                             selected,selected_figure,selected_cell = False, None, None
                         else:
                             reset()
