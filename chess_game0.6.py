@@ -13,26 +13,36 @@ def check_cell(cell, opponent_figures, field):
         return 0
 
 
-def check_shah(opponent_figures, player_figures, field2):# Проверяет, бьет ли игрок короля своего оппонента
+def check_shah(opponent_figures, player_figures, field):# Проверяет, бьет ли игрок короля своего оппонента
     for opponent_figure in opponent_figures:
-        if field2[opponent_figure[1]][opponent_figure[0]] == 'k':
+        if field[opponent_figure[1]][opponent_figure[0]] == 'k':
             opponent_king = opponent_figure[:]
             break
     for figure in player_figures:
-        admissible = check_positions(figure, player_figures, opponent_figures, field2)
+        admissible = check_positions(figure, player_figures, opponent_figures, field)
         if opponent_king in admissible:
             return True
     else:
         return False
 
 
+def check_checkmate(player_figures, opponent_figures, field):
+    for player_figure in player_figures:
+        admissible = check_positions(player_figure, player_figures, opponent_figures, field)
+        admissible = exclude_check_unprotected(field[player_figure[1]][player_figure[0]], player_figure, admissible, player_figures, opponent_figures, field)
+        if admissible:
+            return False
+    else:
+        return True
+
+
 def check_pawn(cell, opponent_figures, field): # Проверяет допустимые ячейки поля для хода пешкой
     admissible = []
     if opponent_figures == black_figures:
-        direction, start = -1, 6
+        direction, start_pos = -1, 6
     else:
-        direction, start = 1, 1
-    if cell[1] == start:
+        direction, start_pos = 1, 1
+    if cell[1] == start_pos:
         for x,y in ([cell[0], cell[1] + 1*direction], [cell[0], cell[1] + 2*direction]):
             if check_cell([x, y], opponent_figures, field) == 1:
                 admissible.append([x, y])
@@ -184,7 +194,7 @@ def check_queen(cell, opponent_figures, field): # Проверяет допус�
             break
         else:
             break
-    for x in range(cell[0]+1, 8):
+    for x in range(cell[0] + 1, 8):
         code = check_cell([x, cell[1]], opponent_figures, field)
         if code == 1:
             admissible.append([x, cell[1]])
@@ -193,7 +203,7 @@ def check_queen(cell, opponent_figures, field): # Проверяет допус�
             break
         else:
             break
-    for x in range(cell[0]-1, -1, -1):
+    for x in range(cell[0] - 1, -1, -1):
         code = check_cell([x, cell[1]], opponent_figures, field)
         if code == 1:
             admissible.append([x, cell[1]])
@@ -202,7 +212,7 @@ def check_queen(cell, opponent_figures, field): # Проверяет допус�
             break
         else:
             break
-    for y in range(cell[1]+1, 8):
+    for y in range(cell[1] + 1, 8):
         code = check_cell([cell[0], y], opponent_figures, field)
         if code == 1:
             admissible.append([cell[0], y])
@@ -211,7 +221,7 @@ def check_queen(cell, opponent_figures, field): # Проверяет допус�
             break
         else:
             break
-    for y in range(cell[1]-1, -1, -1):
+    for y in range(cell[1] - 1, -1, -1):
         code = check_cell([cell[0], y], opponent_figures, field)
         if code == 1:
             admissible.append([cell[0], y])
@@ -223,40 +233,40 @@ def check_queen(cell, opponent_figures, field): # Проверяет допус�
     return admissible
 
 
-def exclude_check_unprotected_positions(figure, figure_cell2, admissible, player_figures, opponent_figures): # Исключает из допустимых для хода ячеек поля те, которые не защищают короля от шаха
+def exclude_check_unprotected(figure, figure_cell, admissible, player_figures, opponent_figures, field): # Исключает из допустимых для хода ячеек поля те, которые не защищают короля от шаха
     new_admissible = copy.deepcopy(admissible)
     for admissible_pos in admissible:
         player_figures_copy = copy.deepcopy(player_figures)
         field_copy = copy.deepcopy(field)
         field_copy[admissible_pos[1]][admissible_pos[0]] = figure
-        field_copy[figure_cell2[1]][figure_cell2[0]] = ' '
-        player_figures_copy[player_figures_copy.index(figure_cell2)] = admissible_pos[:]
+        field_copy[figure_cell[1]][figure_cell[0]] = ' '
+        player_figures_copy[player_figures_copy.index(figure_cell)] = admissible_pos[:]
         future_check = check_shah(player_figures_copy, opponent_figures, field_copy)
         if future_check:
             new_admissible.remove(admissible_pos)
     return new_admissible
 
 
-def check_positions(cell2, player_figures, opponent_figures, field):
+def check_positions(cell, player_figures, opponent_figures, field): # Проверяет допустимые ячейки поля для хода фигуры в зависимости от ее типа
     # cell = field[y][x] -> 'f','p'...
-    admissible3 = []
-    figure = field[cell2[1]][cell2[0]]
+    admissible = []
+    figure = field[cell[1]][cell[0]]
     if figure == 'p':
-        admissible3 = check_pawn(cell2, opponent_figures, field)
+        admissible = check_pawn(cell, opponent_figures, field)
     elif figure == 'r':
-        admissible3 = check_rook(cell2, opponent_figures, field)
+        admissible = check_rook(cell, opponent_figures, field)
     elif figure == 'h':
-        admissible3 = check_knight(cell2, opponent_figures, field)
+        admissible = check_knight(cell, opponent_figures, field)
     elif figure == 'b':
-        admissible3 = check_bishop(cell2, opponent_figures, field)
+        admissible = check_bishop(cell, opponent_figures, field)
     elif figure == 'q':
-        admissible3 = check_queen(cell2, opponent_figures, field)
+        admissible = check_queen(cell, opponent_figures, field)
     elif figure == 'k':
-        admissible3 = check_king(cell2, opponent_figures, field)
-    return admissible3
+        admissible = check_king(cell, opponent_figures, field)
+    return admissible
 
 
-def draw_figures():
+def draw_figures(): # Рисует изображения фигур на на поверхности
     for figure in black_figures:
         x = figure[0] * CELL_SIZE + FIGURE_START_POS[0]
         y = figure[1] * CELL_SIZE + FIGURE_START_POS[1]
@@ -269,7 +279,17 @@ def draw_figures():
             screen.blit(white_pictures[field[figure[1]][figure[0]]], (x, y))
 
 
-def take_figure(player_figures, opponent_figures):
+def draw_admissible():
+    for cell in admissible_positions:
+        if selected_figure in white_figures and cell in black_figures:
+            pygame.draw.rect(screen, COLOR_RED, (cell[0]*CELL_SIZE + FIELD_START_POS[0], cell[1]*CELL_SIZE + FIELD_START_POS[1], CELL_SIZE, CELL_SIZE), 3)
+        elif selected_figure in black_figures and cell in white_figures:
+            pygame.draw.rect(screen, COLOR_RED, (cell[0]*CELL_SIZE + FIELD_START_POS[0], cell[1]*CELL_SIZE + FIELD_START_POS[1], CELL_SIZE, CELL_SIZE), 3)
+        else:
+            pygame.draw.rect(screen, COLOR_YELLOW, (cell[0]*CELL_SIZE + FIELD_START_POS[0], cell[1]*CELL_SIZE + FIELD_START_POS[1], CELL_SIZE, CELL_SIZE), 3)
+    
+
+def take_figure(player_figures, opponent_figures): # Снимает атакуемую фигуру противника с поля и перемещает атакующую фигуру на ее место
     global selected, selected_figure, selected_cell, white_step, black_step
     opponent_figures.remove(selected_cell) # Удаляем фигуру у противника
     field[selected_cell[1]][selected_cell[0]] = field[selected_figure[1]][selected_figure[0]] # Перемещаем свою фигуру на место удаленной
@@ -281,13 +301,14 @@ def take_figure(player_figures, opponent_figures):
 def move_figure(player_figures):
     global selected, selected_figure, selected_cell, white_step, black_step
     field[selected_cell[1]][selected_cell[0]] = field[selected_figure[1]][selected_figure[0]] # Перемещаем фигуру на новое место
-    field[selected_figure[1]][selected_figure[0]] = ' ' # Очищаем клетку перемещенной фигуры
+    field[selected_figure[1]][selected_figure[0]] = ' ' 
     player_figures[player_figures.index(selected_figure)] = selected_cell[:]
     white_step, black_step = black_step, white_step
 
-def init_pictures(folder = 'pictures'):
 
-    def init_picture(file,colorkey = (0,255,0)):
+def init_pictures(folder = 'pictures'): # Формирует массив из изображений фигур, взятых из папки
+
+    def init_picture(file,colorkey = (0,255,0)): # Загружает файл картинки и подгоняет его под установленный размер фигуры внутри ячейки
         picture = pygame.image.load(file).convert()
         adjusted_picture = pygame.transform.scale(picture, (FIGURE_SIZE, FIGURE_SIZE))
         adjusted_picture.set_colorkey(colorkey)
@@ -322,15 +343,15 @@ def init_pictures(folder = 'pictures'):
             white_pictures[white] = init_picture(folder + '/king_white.png')
 
 
-def init_field_screen():
+def init_chess_field(surface): # 
     grid = 1
     grid_colors = ((200, 200, 200), (50, 50, 50))
     for x in range(8):
         for y in range(8):
             grid +=1
-            pygame.draw.rect(field_screen, grid_colors[grid%2],(CELL_SIZE*x,CELL_SIZE*y, CELL_SIZE, CELL_SIZE),0)
+            pygame.draw.rect(surface, grid_colors[grid%2],(CELL_SIZE*x,CELL_SIZE*y, CELL_SIZE, CELL_SIZE),0)
         grid +=1
-    pygame.draw.rect(field_screen,(0,0,0), (0,0,FIELD_LENGTH,FIELD_LENGTH), 1)
+    pygame.draw.rect(surface,(0,0,0), (0,0,FIELD_LENGTH,FIELD_LENGTH), 1)
 
 def reset():
     global selected, selected_figure, selected_cell
@@ -340,7 +361,7 @@ def reset():
 
 
 SIZE_X, SIZE_Y = 640, 480
-FPS = 75
+FPS = 30
 COLOR_BACKGROUND = 255, 255, 255
 COLOR_TEXT = 0, 0, 0
 COLOR_YELLOW = 220, 220, 0
@@ -372,36 +393,30 @@ game = True
 selected = False
 black_step, white_step = False, True
 white_check, black_check = False, False
+white_checkmate, black_checkmate = False, False
 pygame.init()
 pygame.display.set_caption('CHESS')
 screen = pygame.display.set_mode((SIZE_X, SIZE_Y)) # pygame.DOUBLEBUF
+print(dir(screen))
 field_screen = pygame.Surface((FIELD_LENGTH, FIELD_LENGTH))
-init_field_screen()
+init_chess_field(field_screen)
 clock = pygame.time.Clock()
 black_pictures = {}
 white_pictures = {}
-a_p = []
 init_pictures()
 text_font = pygame.font.SysFont('arial', 24)
-while game:
+checkmate_font = pygame.font.SysFont('arial', 42)
+while not (white_checkmate or black_checkmate) and game:
     clock.tick(FPS)
     screen.fill(COLOR_BACKGROUND)
     screen.blit(field_screen, FIELD_START_POS)
     if selected:
-        for cell in admissible_positions:
-            if selected_figure in white_figures and cell in black_figures:
-                pygame.draw.rect(screen, COLOR_RED, (cell[0]*CELL_SIZE + FIELD_START_POS[0], cell[1]*CELL_SIZE + FIELD_START_POS[1], CELL_SIZE, CELL_SIZE), 3)
-            elif selected_figure in black_figures and cell in white_figures:
-                pygame.draw.rect(screen, COLOR_RED, (cell[0]*CELL_SIZE + FIELD_START_POS[0], cell[1]*CELL_SIZE + FIELD_START_POS[1], CELL_SIZE, CELL_SIZE), 3)
-            else:
-                pygame.draw.rect(screen, COLOR_YELLOW, (cell[0]*CELL_SIZE + FIELD_START_POS[0], cell[1]*CELL_SIZE + FIELD_START_POS[1], CELL_SIZE, CELL_SIZE), 3)
-        for ap in a_p:
-            pygame.draw.rect(screen,(128,128,255),(ap[0]*CELL_SIZE + FIELD_START_POS[0]+5, ap[1]*CELL_SIZE + FIELD_START_POS[1]+5, CELL_SIZE-10, CELL_SIZE-10),5)
+        draw_admissible()
         pygame.draw.rect(screen, COLOR_GREEN, (selected_cell[0]*CELL_SIZE + FIELD_START_POS[0],selected_cell[1]*CELL_SIZE + FIELD_START_POS[1],CELL_SIZE,CELL_SIZE), 3)
     for event in pygame.event.get():
-
         if event.type == pygame.QUIT:
             game = False
+            break
         elif event.type == pygame.KEYDOWN:
             pass
         elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -412,16 +427,12 @@ while game:
                 if selected_cell in white_figures and white_step:
                     selected_figure = selected_cell[:]
                     admissible_positions = check_positions(selected_figure[:], white_figures, black_figures,field)
-                    a_p = check_positions(selected_figure[:], white_figures, black_figures, field)
-                    if white_check:
-                        admissible_positions = exclude_check_unprotected_positions(field[selected_figure[1]][selected_figure[0]], selected_figure[:], admissible_positions, white_figures, black_figures)
+                    admissible_positions = exclude_check_unprotected(field[selected_figure[1]][selected_figure[0]], selected_figure[:], admissible_positions, white_figures, black_figures, field)
                     selected = True
                 elif selected_cell in black_figures and black_step:
                     selected_figure = selected_cell[:]
                     admissible_positions = check_positions(selected_figure[:], black_figures, white_figures, field)
-                    a_p = check_positions(selected_figure[:], black_figures, white_figures, field)
-                    if black_check:
-                        admissible_positions = exclude_check_unprotected_positions(field[selected_figure[1]][selected_figure[0]], selected_figure[:], admissible_positions, black_figures, white_figures)
+                    admissible_positions = exclude_check_unprotected(field[selected_figure[1]][selected_figure[0]], selected_figure[:], admissible_positions, black_figures, white_figures, field)
                     selected = True
                 else:
                     if selected_figure != None and white_step: # Если выбрана фигура и ячейка
@@ -429,12 +440,22 @@ while game:
                             take_figure(white_figures, black_figures)
                             black_check = check_shah(black_figures, white_figures, field)
                             white_check = check_shah(white_figures, black_figures, field)
+                            black_checkmate = check_checkmate(black_figures, white_figures, field)
+                            white_checkmate = check_checkmate(white_figures, black_figures, field)
                             selected,selected_figure,selected_cell = False, None, None
+                            if black_checkmate or white_checkmate:
+                                reset()
+                                break
                         elif selected_cell in admissible_positions:
                             move_figure(white_figures)
                             black_check = check_shah(black_figures, white_figures, field)
                             white_check = check_shah(white_figures, black_figures, field)
+                            black_checkmate = check_checkmate(black_figures, white_figures, field)
+                            white_checkmate = check_checkmate(white_figures, black_figures, field)
                             selected,selected_figure,selected_cell = False, None, None
+                            if black_checkmate or white_checkmate:
+                                reset()
+                                break
                         else:
                             reset()
                     elif selected_figure != None and black_step:
@@ -470,6 +491,13 @@ while game:
     screen.blit(fps,(410, 180))
     draw_figures()
     pygame.display.flip()
+
+if black_checkmate or white_checkmate:
+    text = 'Black wins!' if white_check else 'White wins!'
+    checkmate = checkmate_font.render(text, 0, COLOR_TEXT)
+    screen.blit(checkmate, (40, 420))
+    pygame.display.flip()
+    pygame.time.delay(10000)
 pygame.quit()
 
 #  print(pygame.mouse.get_pos()) позиция мыши
