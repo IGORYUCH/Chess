@@ -13,14 +13,15 @@ def check_cell(cell, opponent_figures, field):
         return 0
 
 
-def check_shah(opponent_figures, player_figures, field):# Проверяет, бьет ли игрок короля своего оппонента
-    for opponent_figure in opponent_figures:
-        if field[opponent_figure[1]][opponent_figure[0]] == 'k':
-            opponent_king = opponent_figure[:]
+def check_shah(player_figures, opponent_figures, field):# Проверяет, бьет ли игрок короля своего оппонента
+    admissible = []
+    for player_figure in player_figures:
+        if field[player_figure[1]][player_figure[0]] == 'k':
+            player_king = player_figure[:]
             break
-    for figure in player_figures:
-        admissible = check_positions(figure, player_figures, opponent_figures, field)
-        if opponent_king in admissible:
+    for opponent_figure in opponent_figures:
+        admissible = check_positions(opponent_figure, opponent_figures, player_figures, field)
+        if player_king in admissible:
             return True
     else:
         return False
@@ -240,8 +241,11 @@ def exclude_check_unprotected(figure, figure_cell, admissible, player_figures, o
         field_copy = copy.deepcopy(field)
         field_copy[admissible_pos[1]][admissible_pos[0]] = figure
         field_copy[figure_cell[1]][figure_cell[0]] = ' '
+        opponent_figures_copy = copy.deepcopy(opponent_figures)
+        if admissible_pos in opponent_figures:
+            opponent_figures_copy.remove(admissible_pos)
         player_figures_copy[player_figures_copy.index(figure_cell)] = admissible_pos[:]
-        future_check = check_shah(player_figures_copy, opponent_figures, field_copy)
+        future_check = check_shah(player_figures_copy, opponent_figures_copy, field_copy)
         if future_check:
             new_admissible.remove(admissible_pos)
     return new_admissible
@@ -439,9 +443,9 @@ while not (white_checkmate or black_checkmate) and game:
                         if selected_cell in black_figures and selected_cell in admissible_positions:
                             take_figure(white_figures, black_figures)
                             black_check = check_shah(black_figures, white_figures, field)
-                            white_check = check_shah(white_figures, black_figures, field)
+                            #white_check = check_shah(white_figures, black_figures, field)
                             black_checkmate = check_checkmate(black_figures, white_figures, field)
-                            white_checkmate = check_checkmate(white_figures, black_figures, field)
+                            #white_checkmate = check_checkmate(white_figures, black_figures, field)
                             selected,selected_figure,selected_cell = False, None, None
                             if black_checkmate or white_checkmate:
                                 reset()
@@ -449,9 +453,9 @@ while not (white_checkmate or black_checkmate) and game:
                         elif selected_cell in admissible_positions:
                             move_figure(white_figures)
                             black_check = check_shah(black_figures, white_figures, field)
-                            white_check = check_shah(white_figures, black_figures, field)
+                            #white_check = check_shah(white_figures, black_figures, field)
                             black_checkmate = check_checkmate(black_figures, white_figures, field)
-                            white_checkmate = check_checkmate(white_figures, black_figures, field)
+                            #white_checkmate = check_checkmate(white_figures, black_figures, field)
                             selected,selected_figure,selected_cell = False, None, None
                             if black_checkmate or white_checkmate:
                                 reset()
@@ -461,12 +465,12 @@ while not (white_checkmate or black_checkmate) and game:
                     elif selected_figure != None and black_step:
                         if selected_cell in white_figures and selected_cell in admissible_positions:
                             take_figure(black_figures, white_figures)
-                            white_check = check_shah(white_figures, black_figures, field)
+                            #white_check = check_shah(white_figures, black_figures, field)
                             black_check = check_shah(black_figures, white_figures, field)
                             selected,selected_figure,selected_cell = False, None, None
                         elif selected_cell in admissible_positions:
                             move_figure(black_figures)
-                            white_check = check_shah(white_figures, black_figures, field)
+                            #white_check = check_shah(white_figures, black_figures, field)
                             black_check = check_shah(black_figures, white_figures, field)
                             selected,selected_figure,selected_cell = False, None, None
                         else:
