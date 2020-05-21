@@ -89,16 +89,6 @@ def show_settings_menu(manager):
     back = False
     settings_menu = SettingsMenu(250,100, manager)
     settings_menu.window.set_blocking(True)
-
-#bot difficulty easy,medium,hard,nightmare
-#server ip adress 192.168.0.1
-#server port 6666
-#nickname big_ass
-#cell black color(RGB) (0,0,0)
-#cell white color(RGB) (255,255,255)
-#show cell hints Yes,No
-#
-
     while not back:
         time_delta = clock.tick(60)/1000.0
         for event in pygame.event.get():
@@ -121,6 +111,14 @@ def show_confirm():
 
 class SettingsMenu():
 
+#bot difficulty easy,medium,hard,nightmare
+#server ip adress 192.168.0.1
+#server port 6666
+#nickname big_ass
+#cell black color(RGB) (0,0,0)
+#cell white color(RGB) (255,255,255)
+#show cell hints Yes,No
+#
     def __init__(self,startX,startY,manager):
         self.window = pygame_gui.elements.ui_window.UIWindow(rect = pygame.Rect(startX,startY,300,400),
                                                              manager = manager,
@@ -129,21 +127,54 @@ class SettingsMenu():
                                                          text='back',
                                                          manager=manager,
                                                         container=self.window)
-        self.bot_difficulty_label = pygame_gui.elements.UILabel(relative_rect=pygame.Rect(5, 80, 120, 20),
+        self.bot_difficulty_label = pygame_gui.elements.UILabel(relative_rect=pygame.Rect(5, 50, 120, 20),
                                                                 text='Bot difficulty',
                                                                 manager=manager,
                                                                 container = self.window)
-        self.bot_difficulty_label.bg_colour = (0,0,255)
-        self.bot_difficulty_drop_down_menu = pygame_gui.elements.UIDropDownMenu(relative_rect=pygame.Rect(110, 140, 100, 20),
-                                               manager=manager, options_list=['Easy', 'Medium', 'Hard', 'Nightmare'],
+        print(dir(self.bot_difficulty_label.bg_colour))
+        self.bot_difficulty_drop_down_menu = pygame_gui.elements.UIDropDownMenu(relative_rect=pygame.Rect(140,50, 100, 30),
+                                               manager=manager, options_list=['Easy', 'Medium', 'Hard'],
                                                starting_option='Easy',container = self.window)
-##        self.bot_difficulty_label = pygame_gui.elements.UILabel(relative_rect=pygame.Rect(5, 50, 100, 20),
-##                                                                text='Setting1',
-##                                                                manager=manager,
-##                                                                container = self.window)
-##        self.text_entry = pygame_gui.elements.UITextEntryLine(pygame.Rect(110, 50, 100,20),
-##                                                            manager=manager,
-##                                                              container = self.window)
+
+        self.ip_address_label = pygame_gui.elements.UILabel(relative_rect=pygame.Rect(5, 80, 120, 20),
+                                                                text='Server IP',
+                                                                manager=manager,
+                                                                container = self.window)
+        self.ip_adress_line = pygame_gui.elements.ui_text_entry_line.UITextEntryLine(relative_rect=pygame.Rect(140, 80, 100, 20),
+                                                                manager=manager,
+                                                                container = self.window)
+        self.port_label = pygame_gui.elements.UILabel(relative_rect=pygame.Rect(5, 110, 120, 20),
+                                                                text='Server port',
+                                                                manager=manager,
+                                                                container = self.window)
+        self.port_line = pygame_gui.elements.ui_text_entry_line.UITextEntryLine(relative_rect=pygame.Rect(140, 110, 100, 20),
+                                                                manager=manager,
+                                                                container = self.window)
+        self.nickname_label = pygame_gui.elements.UILabel(relative_rect=pygame.Rect(5, 140, 120, 20),
+                                                                text='Nickname',
+                                                                manager=manager,
+                                                                container = self.window)
+        self.nickname_line = self.port_line = pygame_gui.elements.ui_text_entry_line.UITextEntryLine(relative_rect=pygame.Rect(140, 140, 100, 20),
+                                                                manager=manager,
+                                                                container = self.window)
+        self.black_cell_label = pygame_gui.elements.UILabel(relative_rect=pygame.Rect(5, 180, 120, 20),
+                                                                text='Black cell',
+                                                                manager=manager,
+                                                                container = self.window)
+        self.black_cell_line = self.port_line = pygame_gui.elements.ui_text_entry_line.UITextEntryLine(relative_rect=pygame.Rect(140, 180, 100, 20),
+                                                                manager=manager,
+                                                                container = self.window)
+        self.white_cell_label = pygame_gui.elements.UILabel(relative_rect=pygame.Rect(5, 220, 120, 20),
+                                                                text='White cell',
+                                                                manager=manager,
+                                                                container = self.window)
+        self.white_cell_line = self.port_line = pygame_gui.elements.ui_text_entry_line.UITextEntryLine(relative_rect=pygame.Rect(140, 220, 100, 20),
+                                                                manager=manager,
+                                                                container = self.window)
+        
+        
+        
+
     def save_changes(self):
         pass
 
@@ -163,24 +194,28 @@ class MainMenu():
         self.window = pygame_gui.elements.ui_window.UIWindow(rect = pygame.Rect(startX,startY,300,400),
                                                              manager = ui_manager,
                                                              window_display_title = 'Chess v0.6')
-        self.play_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect(40,10,self.width, self.height),
-                                                         text='Play offline',
+        self.play_online_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect(40,10,self.width, self.height),
+                                                         text='Play online',
                                                          manager=ui_manager,
                                                         container=self.window)
 
-        self.settings_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect(40,50,self.width,self.height),
+        self.play_offline_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect(40,50,self.width, self.height),
+                                                         text='Play offline',
+                                                         manager=ui_manager,
+                                                        container=self.window)
+        self.play_with_bot_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect(40,90,self.width, self.height),
+                                                         text='Play with bot',
+                                                         manager=ui_manager,
+                                                        container=self.window)
+        self.settings_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect(40,130,self.width,self.height),
                                                         text='Settings',
                                                         manager=ui_manager,
                                                         container=self.window)
-        self.sure_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect(40,90,self.width,self.height),
-                                                         text='Check sure',
-                                                         manager=ui_manager,
-                                                        container=self.window)
-        self.rules_button = pygame_gui.elements.UIButton(relative_rect = pygame.Rect(40,130,self.width,self.height),
-                                                  text = 'rules',
+        self.rules_button = pygame_gui.elements.UIButton(relative_rect = pygame.Rect(40,170,self.width,self.height),
+                                                  text = 'Rules',
                                                   manager = ui_manager,
                                                   container = self.window)
-        self.quit_button = pygame_gui.elements.UIButton(relative_rect = pygame.Rect(40,180,self.width,self.height),
+        self.quit_button = pygame_gui.elements.UIButton(relative_rect = pygame.Rect(40,220,self.width,self.height),
                                                   text = 'Quit',
                                                   manager = ui_manager,
                                                   container = self.window)
@@ -205,13 +240,15 @@ while is_running:
             is_running = False
         if event.type == pygame.USEREVENT:
             if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
-                if event.ui_element == main_menu.play_button:
+                if event.ui_element == main_menu.play_online_button:
                     print('AEFQ')
                     play()
                 elif event.ui_element == main_menu.settings_button:
                     show_settings_menu(pygame_gui.UIManager((800, 600)))
-                elif event.ui_element == main_menu.sure_button:
+                elif event.ui_element == main_menu.play_with_bot_button:
                     show_alert('Ar u sure?', pygame_gui.UIManager((800, 600)))
+                elif event.ui_element == main_menu.play_offline_button:
+                    pass
                 elif event.ui_element == main_menu.rules_button:
                     open_new_tab('https://ru.wikipedia.org/wiki/%D0%9F%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0_%D1%88%D0%B0%D1%85%D0%BC%D0%B0%D1%82')
                 elif event.ui_element == main_menu.quit_button:
