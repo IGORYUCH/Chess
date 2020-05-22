@@ -1,9 +1,10 @@
 import pygame
 import pygame_gui
 import socket
-#import rsa
+import rsa
 import threading
 from random import randrange as r
+from random import choice
 from webbrowser import open_new_tab
 
 def err_handler(function):
@@ -16,6 +17,7 @@ def err_handler(function):
             with open('error_log.txt','a') as err_file:
                 err_file.write('[' + ctime() + '] ' +' in ' + function.__name__ + ' ' + str(err.args) + '\n')
     return wrapper
+
 
 def init_background(surface, cell_size = 50):
     grid_colors = [(200,200,200),(50,50,50)]
@@ -67,7 +69,17 @@ def play_with_bot():
 ##    client_sock.send(encrypted_key)
 ##    serverListener.start()
 
+
+def xor_crypt(string:bytes, key:bytes) -> bytes:
+    key_len = len(key)
+    fitted_key = bytes(key[index % key_len] for index in range(len(string)))
+    crypto_str = bytes([string[index] ^ fitted_key[index] for index in range(len(string))])
+    return crypto_str
+
+
 def connect_to_server(client, menu):
+    global xor_key
+    
     try:
         client.connect((ADDRESS, PORT))
     except Exception as err:
@@ -75,17 +87,23 @@ def connect_to_server(client, menu):
         menu.text_label.set_text('Could not connect to server!')
         return False
     else:
+        menu.text_label.set_text('Establishing secure connection')
+        xor_key = bytes([choice(b'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTYVWXYZ1234567890+/') for i in range(KEYLEN)])
+        server_listener = PlayerSocket()
+        server_public_key_data = client.recv(1024)
+        server_key = rsa.PublicKey.load_pkcs1(server_public_key_data)
+        encrypted_key = rsa.encrypt(xor_key, server_key)
         menu.text_label.set_text('Searching for players...')
+        client.send(encrypted_key)
         return True
-    
     
 
 def play_online(manager):
     i = False
     server_menu = ServerMenu(250,100,manager)
     server_menu.window.set_blocking(True)
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    connection_thread = threading.Thread(target = connect_to_server, args= (client_socket, server_menu))
+    client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    connection_thread = threading.Thread(target = connect_to_server, args= (client_sock, server_menu))
     connection_thread.start()
     while not i:
         time_delta = clock.tick(FPS)/1000.0
@@ -96,7 +114,7 @@ def play_online(manager):
                         print('accept button')
                     elif event.ui_element == server_menu.cancel_button:
                         print('cancel button')
-                        client_socket.close()
+                        client_sock.close()
                         i = True
             manager.process_events(event)
         manager.update(time_delta)
@@ -190,14 +208,12 @@ def show_in_game_menu(manager):
     in_game_menu.window.kill()
     return exit_answer
 
-class ServerListener(threading.Thread):
+class PlayerSocket(threading.Thread):
 
-    @err_handler
     def __init__(self):
-        Thread.__init__(self)
+        threading.Thread.__init__(self)
         self.disconnected = False
         
-    @err_handler
     def get_data(self):
         try:
             server_data = client_sock.recv(1024)
@@ -205,21 +221,19 @@ class ServerListener(threading.Thread):
                 print('system: disconnected by server')
                 return False
         except ConnectionResetError:
-            add_str('system: disconnected by server (connection reset)')
+            print('system: disconnected by server (connection reset)')
             return False
-        add_str(xor_crypt(server_data, xor_key).decode('utf-8'))
+        print(xor_crypt(server_data, xor_key).decode('utf-8'))
         return True
 
-    @err_handler
     def send_data(self, message):
         try:
             client_sock.send(xor_crypt(message.encode('utf-8'), xor_key))
             return True
         except ConnectionResetError:
-            add_str('system: disconnected by server')
+            print('system: disconnected by server')
             return False
 
-    @err_handler
     def run(self):
         while True:
             server_data = self.get_data()
@@ -237,7 +251,7 @@ class ServerMenu():
         self.window = pygame_gui.elements.ui_window.UIWindow(rect = pygame.Rect(startX, startY, 300, 200),
                                                                 manager = manager,
                                                                 window_display_title = 'Online game mode')
-        self.text_label = pygame_gui.elements.UILabel(relative_rect = pygame.Rect(5, 5, 220, 30),
+        self.text_label = pygame_gui.elements.UILabel(relative_rect = pygame.Rect(5, 5, 260, 30),
                                                                 text = 'Connecting to server...',
                                                                 manager = manager,
                                                                 container = self.window)
@@ -351,7 +365,7 @@ class InGameMenu():
 
 class MainMenu():
     
-    def __init__(self, startX, startY,manager):
+    def __init__(self, startX, startY, manager):
         self.height = 40
         self.width = 180
         self.window = pygame_gui.elements.ui_window.UIWindow(rect = pygame.Rect(startX, startY, 300, 400),
@@ -383,7 +397,9 @@ class MainMenu():
                                                                 container = self.window)
 FPS = 60
 SIZE_X, SIZE_Y = 800, 600
-ADDRESS, PORT = '8.8.8.8', 6666
+ADDRESS, PORT = '127.0.0.1', 6666
+KEYLEN = 64
+xor_key = None
 pygame.init()
 pygame.display.set_caption('Chess game')
 window_surface = pygame.display.set_mode((SIZE_X, SIZE_Y))
