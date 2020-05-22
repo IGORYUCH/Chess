@@ -1,7 +1,21 @@
 import pygame
 import pygame_gui
+import socket
+#import rsa
+import threading
 from random import randrange as r
 from webbrowser import open_new_tab
+
+def err_handler(function):
+    def wrapper(*args,**kwargs):
+        try:
+            result = function(*args,**kwargs)
+            return result
+        except Exception as err:
+            add_str('An error occured in ', function.__name__)
+            with open('error_log.txt','a') as err_file:
+                err_file.write('[' + ctime() + '] ' +' in ' + function.__name__ + ' ' + str(err.args) + '\n')
+    return wrapper
 
 def init_background(surface, cell_size = 50):
     grid_colors = [(200,200,200),(50,50,50)]
@@ -15,7 +29,7 @@ def init_background(surface, cell_size = 50):
         s+=1
 
 
-def play():
+def play_offline():
     game = True
     window_surface.fill((128,128,128))
     text_font = pygame.font.SysFont('arial', 24)
@@ -39,9 +53,61 @@ def play():
         pygame.display.update()
 
 
+def play_with_bot():
+    pass
+##messages = []
+##while True:
+##    serverListener = ServerListener()
+##    xor_key = bytes([choice(b'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTYVWXYZ1234567890+/') for i in range(KEYLEN)])
+##    client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+##    client_sock.connect((ADDRESS,PORT))
+##    server_public_key_data = client_sock.recv(1024)
+##    server_key = rsa.PublicKey.load_pkcs1(server_public_key_data)
+##    encrypted_key = rsa.encrypt(xor_key, server_key)
+##    client_sock.send(encrypted_key)
+##    serverListener.start()
+
+def connect_to_server(client, menu):
+    try:
+        client.connect((ADDRESS, PORT))
+    except Exception as err:
+        print(err.args)
+        menu.text_label.set_text('Could not connect to server!')
+        return False
+    else:
+        menu.text_label.set_text('Searching for players...')
+        return True
+    
+    
+
+def play_online(manager):
+    i = False
+    server_menu = ServerMenu(250,100,manager)
+    server_menu.window.set_blocking(True)
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    connection_thread = threading.Thread(target = connect_to_server, args= (client_socket, server_menu))
+    connection_thread.start()
+    while not i:
+        time_delta = clock.tick(FPS)/1000.0
+        for event in pygame.event.get():
+            if event.type == pygame.USEREVENT:
+                if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
+                    if event.ui_element == server_menu.accept_button:
+                        print('accept button')
+                    elif event.ui_element == server_menu.cancel_button:
+                        print('cancel button')
+                        client_socket.close()
+                        i = True
+            manager.process_events(event)
+        manager.update(time_delta)
+        manager.draw_ui(window_surface)
+        pygame.display.update()
+    server_menu.window.kill()
+
+
 def show_alert(message, manager):    
     accepted = False
-    alert = pygame_gui.windows.UIMessageWindow(pygame.Rect(250,200,300,200),html_message = message,manager= manager)
+    alert = pygame_gui.windows.UIMessageWindow(pygame.Rect(250,200,300,200),html_message = message,manager = manager)
     alert.dismiss_button.set_text('OK')
     alert.set_blocking(True)
     while not accepted:
@@ -116,16 +182,76 @@ def show_in_game_menu(manager):
                         open_new_tab('https://ru.wikipedia.org/wiki/%D0%9F%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0_%D1%88%D0%B0%D1%85%D0%BC%D0%B0%D1%82')
                     elif event.ui_element == in_game_menu.quit_button:
                         if show_confirm('Are you shure? Game will be lost', pygame_gui.UIManager((SIZE_X, SIZE_Y))):
-                            exit_answer = True
-                            
+                            exit_answer = True  
             manager.process_events(event)
         manager.update(time_delta)
         manager.draw_ui(window_surface)
         pygame.display.update()
     in_game_menu.window.kill()
     return exit_answer
-                    
-                        
+
+class ServerListener(threading.Thread):
+
+    @err_handler
+    def __init__(self):
+        Thread.__init__(self)
+        self.disconnected = False
+        
+    @err_handler
+    def get_data(self):
+        try:
+            server_data = client_sock.recv(1024)
+            if not server_data:
+                print('system: disconnected by server')
+                return False
+        except ConnectionResetError:
+            add_str('system: disconnected by server (connection reset)')
+            return False
+        add_str(xor_crypt(server_data, xor_key).decode('utf-8'))
+        return True
+
+    @err_handler
+    def send_data(self, message):
+        try:
+            client_sock.send(xor_crypt(message.encode('utf-8'), xor_key))
+            return True
+        except ConnectionResetError:
+            add_str('system: disconnected by server')
+            return False
+
+    @err_handler
+    def run(self):
+        while True:
+            server_data = self.get_data()
+            if not server_data:
+                self.disconnected = True
+                break
+
+    def connect_to_server(self):
+        pass
+
+
+class ServerMenu():
+
+    def __init__(self, startX, startY, manager):
+        self.window = pygame_gui.elements.ui_window.UIWindow(rect = pygame.Rect(startX, startY, 300, 200),
+                                                                manager = manager,
+                                                                window_display_title = 'Online game mode')
+        self.text_label = pygame_gui.elements.UILabel(relative_rect = pygame.Rect(5, 5, 220, 30),
+                                                                text = 'Connecting to server...',
+                                                                manager = manager,
+                                                                container = self.window)
+        self.accept_button = pygame_gui.elements.UIButton(relative_rect = pygame.Rect(10,100,120,30),
+                                                                text = 'Accept',
+                                                                manager = manager,
+                                                                container = self.window)
+        self.cancel_button = pygame_gui.elements.UIButton(relative_rect = pygame.Rect(135,100,120,30),
+                                                                text = 'Cancel',
+                                                                manager = manager,
+                                                                container = self.window)
+        self.accept_button.disable()
+
+      
 class SettingsMenu():
 
     def __init__(self, startX, startY, manager):
@@ -189,7 +315,7 @@ class SettingsMenu():
                                                                 container = self.window)
         self.cell_hints_drop_down_menu = pygame_gui.elements.UIDropDownMenu(relative_rect = pygame.Rect(130, 230, 120, 30),
                                                                 manager = manager, options_list = ['Yes', 'No'],
-                                                                starting_option='Yes',
+                                                                starting_option = 'Yes',
                                                                 container = self.window)
 
 
@@ -203,7 +329,7 @@ class SettingsMenu():
 
 class InGameMenu():
     
-    def __init__(self, startX, startY,manager):
+    def __init__(self, startX, startY, manager):
         self.height = 40
         self.width = 180
         self.window = pygame_gui.elements.ui_window.UIWindow(rect = pygame.Rect(startX, startY, 300, 300),
@@ -225,45 +351,46 @@ class InGameMenu():
 
 class MainMenu():
     
-    def __init__(self, startX, startY):
+    def __init__(self, startX, startY,manager):
         self.height = 40
         self.width = 180
         self.window = pygame_gui.elements.ui_window.UIWindow(rect = pygame.Rect(startX, startY, 300, 400),
-                                                                manager = ui_manager,
+                                                                manager = manager,
                                                                 window_display_title = 'Chess v0.6')
-        self.play_online_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect(40,10,self.width, self.height),
+        self.play_online_button = pygame_gui.elements.UIButton(relative_rect = pygame.Rect(40,10,self.width, self.height),
                                                                 text='Play online',
-                                                                manager=ui_manager,
-                                                                container=self.window)
+                                                                manager = manager,
+                                                                container = self.window)
         self.play_offline_button = pygame_gui.elements.UIButton(relative_rect = pygame.Rect(40, 50, self.width, self.height),
                                                                 text = 'Play offline',
-                                                                manager = ui_manager,
+                                                                manager = manager,
                                                                 container = self.window)
         self.play_with_bot_button = pygame_gui.elements.UIButton(relative_rect = pygame.Rect(40, 90, self.width, self.height),
                                                                 text = 'Play with bot',
-                                                                manager = ui_manager,
+                                                                manager = manager,
                                                                 container = self.window)
         self.settings_button = pygame_gui.elements.UIButton(relative_rect = pygame.Rect(40, 130, self.width, self.height),
                                                                 text = 'Settings',
-                                                                manager = ui_manager,
+                                                                manager = manager,
                                                                 container = self.window)
         self.rules_button = pygame_gui.elements.UIButton(relative_rect = pygame.Rect(40, 170, self.width, self.height),
                                                                 text = 'Rules',
-                                                                manager = ui_manager,
+                                                                manager = manager,
                                                                 container = self.window)
         self.quit_button = pygame_gui.elements.UIButton(relative_rect = pygame.Rect(40, 220, self.width, self.height),
                                                                 text = 'Quit',
-                                                                manager = ui_manager,
+                                                                manager = manager,
                                                                 container = self.window)
 FPS = 60
 SIZE_X, SIZE_Y = 800, 600
+ADDRESS, PORT = '8.8.8.8', 6666
 pygame.init()
 pygame.display.set_caption('Chess game')
 window_surface = pygame.display.set_mode((SIZE_X, SIZE_Y))
 background_surface = pygame.Surface((SIZE_X, SIZE_Y))
 init_background(background_surface)
 ui_manager = pygame_gui.UIManager((SIZE_X, SIZE_Y))
-main_menu = MainMenu(250,100)
+main_menu = MainMenu(250, 100, ui_manager)
 clock = pygame.time.Clock()
 is_running = True
 
@@ -275,25 +402,18 @@ while is_running:
         if event.type == pygame.USEREVENT:
             if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
                 if event.ui_element == main_menu.play_online_button:
-                    play()
+                    play_online(pygame_gui.UIManager((SIZE_X, SIZE_Y)))
                 elif event.ui_element == main_menu.settings_button:
                     show_settings_menu(pygame_gui.UIManager((SIZE_X, SIZE_Y)))
                 elif event.ui_element == main_menu.play_with_bot_button:
-                    pass
+                    play_with_bot()
                 elif event.ui_element == main_menu.play_offline_button:
-                    pass
+                    play_offline()
                 elif event.ui_element == main_menu.rules_button:
                     open_new_tab('https://ru.wikipedia.org/wiki/%D0%9F%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0_%D1%88%D0%B0%D1%85%D0%BC%D0%B0%D1%82')
                 elif event.ui_element == main_menu.quit_button:
                     if show_confirm('Are you sure?', pygame_gui.UIManager((SIZE_X, SIZE_Y))):
                         is_running = False
-        elif event.type ==  pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:
-                x = pygame.mouse.get_pos()[0]
-                y = pygame.mouse.get_pos()[1]
-                pygame.draw.rect(window_surface,(r(255),r(255),r(255)),(x,y, 10,10),2)
-                pygame.display.flip()
-                pygame.time.delay(100)
         ui_manager.process_events(event)
     ui_manager.update(time_delta)
     window_surface.blit(background_surface,(0,0))
