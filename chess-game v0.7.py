@@ -89,6 +89,7 @@ def play_online(sock):
         
 
 def play_online_menu(manager):
+    window_copy = window_surface.copy()
     i = False
     server_menu = ServerMenu(250,100,manager)
     server_menu.window.set_blocking(True)
@@ -115,6 +116,7 @@ def play_online_menu(manager):
                         i = True
             manager.process_events(event)
         manager.update(time_delta)
+        window_surface.blit(window_copy, (0,0))
         manager.draw_ui(window_surface)
         pygame.display.update()
     server_menu.window.kill()
@@ -140,6 +142,7 @@ def show_alert(message, manager):
 
 
 def show_settings_menu(manager):
+##    window_copy = window_surface.copy()
     back = False
     settings_menu = SettingsMenu(250,100, manager)
     settings_menu.window.set_blocking(True)
@@ -162,6 +165,7 @@ def show_settings_menu(manager):
 
 
 def show_confirm(message, manager):
+    window_copy = window_surface.copy()
     answer = None
     confirm = pygame_gui.windows.UIConfirmationDialog(pygame.Rect(250,200,300,200),
                                                       window_title = 'confirm',
@@ -176,13 +180,16 @@ def show_confirm(message, manager):
                 answer = True
             manager.process_events(event)
         manager.update(time_delta)
+        window_surface.blit(window_copy,(0,0))
         manager.draw_ui(window_surface)
         pygame.display.update()
     confirm.kill()
+    window_surface.blit(window_copy, (0,0))
     return answer
 
 
 def show_in_game_menu(manager):
+    window_copy = window_surface.copy()
     esc = False
     exit_answer = None
     in_game_menu = InGameMenu(250,100, manager)
@@ -204,9 +211,11 @@ def show_in_game_menu(manager):
                             exit_answer = True  
             manager.process_events(event)
         manager.update(time_delta)
+        window_surface.blit(window_copy,(0,0))
         manager.draw_ui(window_surface)
         pygame.display.update()
     in_game_menu.window.kill()
+    window_surface.blit(window_copy,(0,0))
     return exit_answer
 
 
