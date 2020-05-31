@@ -112,6 +112,19 @@ def play_online(sock):
                 white_pictures[white] = init_picture(folder + '/king_white.png')
 
 
+    def take_figure(player_figures, opponent_figures, new_pos, old_pos): # Снимает атакуемую фигуру противника с поля и перемещает атакующую фигуру на ее место
+        opponent_figures.remove(new_pos) # Удаляем фигуру у противника
+        field[new_pos[1]][new_pos[0]] = field[old_pos[1]][old_pos[0]] # Перемещаем свою фигуру на место удаленной
+        field[old_pos[1]][old_pos[0]] = ' ' # Очищаем клетку перемещенной фигуры
+        player_figures[player_figures.index(old_pos)] = new_pos[:] # Меняем координаты выбранной фигуры на координаты выбранной ячейки
+
+
+    def move_figure(player_figures, new_pos, old_pos):
+        field[new_pos[1]][new_pos[0]] = field[old_pos[1]][old_pos[0]] # Перемещаем фигуру на новое место
+        field[old_pos[1]][old_pos[0]] = ' ' 
+        player_figures[player_figures.index(old_pos)] = new_pos[:]
+
+    
     black_pictures = {}
     white_pictures = {}
     field_screen = pygame.Surface((FIELD_LENGTH, FIELD_LENGTH))
@@ -161,8 +174,20 @@ def play_online(sock):
                 show_alert(event2['text'], pygame_gui.UIManager((SIZE_X, SIZE_Y)))
                 game = False
             elif event2['type'] == 'move':
-                selected_cell = [event2['x'], event2['y']]
-            elif event2['type'] == 'msg':
+                new_pos = event2['positions'][0]
+                old_pos = event2['positions'][1]
+                if old_pos in black_figures:
+                    move_figure(black_figures, new_pos, old_pos)
+                else:
+                    move_figure(white_figures, new_pos, old_pos)
+            elif event2['type'] == 'take':
+                new_pos = event2['positions'][0]
+                old_pos = event2['positions'][1]
+                if old_pos in black_figures:
+                    take_figure(black_figures, white_figures, new_pos, old_pos)
+                else:
+                    take_figure(white_figures, black_figures, new_pos, old_pos)
+            elif event2['type'] == 'alert':
                 show_alert(event2['text'],  pygame_gui.UIManager((SIZE_X, SIZE_Y)))
             elif event2['type'] == 'admissible':
                 admissible = deepcopy(event2['admissible_list'])
@@ -325,6 +350,7 @@ class PlayerSocket(threading.Thread):
         self.address = address
         self.port = port
         self.xor_key = None
+        self.blocked = False
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.events = []
 
@@ -343,7 +369,13 @@ class PlayerSocket(threading.Thread):
 
     def send_data(self, message):
         try:
-            self.socket.send(self.xor_crypt(message.encode('utf-8'), self.xor_key))
+            if message != 'GOT':
+                while self.blocked:
+                    print('Server still didnt get')
+                self.socket.send(self.xor_crypt(message.encode('utf-8'), self.xor_key))
+                self.blocked = True
+            else:
+                self.socket.send(self.xor_crypt(message.encode('utf-8'), self.xor_key))
             return True
         except ConnectionResetError:
             print('system: disconnected by server')
@@ -360,26 +392,42 @@ class PlayerSocket(threading.Thread):
             data_words = server_data.split(' ')
             if data_words[0] == 'MSG':
                 self.events.append({'type':'msg','text':' '.join(data_words[1:])})
+                self.send_data('GOT')
+            elif data_words[0] == 'MOVE':
+                self.events.append({'type':'move','positions':json.loads(''.join(data_words[1:]))})
+                self.send_data('GOT')
+            elif data_words[0] == 'TAKE':
+                self.events.append({'type':'take','positions':json.loads(''.join(data_words[1:]))})
+                self.send_data('GOT')
             elif data_words[0] == 'END':
                 self.events.append({'type':'gameover','text':''.join(data_words[1:])})
+                self.send_data('GOT')
             elif data_words[0] == 'ACCEPT':
                 self.menu.text_label.set_text('Opponent accepted')
             elif data_words[0] == 'READY':
                 self.menu.text_label.set_text('Game is ready, press "accept" to accept')
                 self.menu.accept_button.enable()
+                self.send_data('GOT')
             elif data_words[0] == 'GAME':
                 self.events.append({'type':'gamebegin'})
+                self.send_data('GOT')
             elif data_words[0] == 'CANCEL':
                 self.menu.text_label.set_text(' '.join(data_words[1:]))
                 self.menu.accept_button.disable()
+                self.send_data('GOT')
             elif data_words[0] == 'ALERT':
-                self.events.append({'type':'msg','text':' '.join(data_words[1:])})
+                self.events.append({'type':'alert','text':' '.join(data_words[1:])})
+                self.send_data('GOT')
+            elif data_words[0] == 'GOT':
+                print('GET "GOT" from server')
+                self.blocked = False
             elif data_words[0] == 'LIGHT':
                 print('msg',server_data,'splitted',data_words)
                 self.events.append(
                     {'type':'light','cell':json.loads(''.join(data_words[1:]))
                      }
                     )
+                self.send_data('GOT')
             elif data_words[0] == 'ADMISSIBLE':
                 print('msg',server_data,'splitted',data_words)
                 self.events.append(
@@ -387,6 +435,7 @@ class PlayerSocket(threading.Thread):
                      'admissible_list':json.loads(''.join(data_words[1:]))
                      }
                     )
+                self.send_data('GOT')
             print('server data', server_data)
             print('server data encrypted', self.xor_crypt(server_data.encode('utf-8'), self.xor_key))
 
