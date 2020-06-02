@@ -12,7 +12,7 @@ class EventLoop(Thread):
     def __init__(self):
         Thread.__init__(self)
         self.events2 = []
-        self.delay = 0.05
+        self.delay = 0.1
         self.tickrate = int(1/self.delay)
         self.active_games = []
         self.ready_pairs = []
@@ -151,30 +151,33 @@ class ConnectedClient(Thread):
 
 
     def get_msg(self):
-        try:
-            encrypted_data = self.socket.recv(1024)
-            if not encrypted_data:
-                self.disconnect('connection closed by')
-        except ConnectionResetError:
-            self.disconnect('connection reset by')
-        except ConnectionRefusedError:
-            self.disconnect('connection refused by')
-        except TimeoutError:
-            self.disconnect('connection timed out with')
-        else:
-            return self.xor_crypt(encrypted_data, self.xor_key).decode('utf-8')
-        return False
+        chunks = []
+        bytes_recv = 0
+        while bytes_recv < 512:
+            chunk = self.socket.recv(min(512 - bytes_recv, 2048))
+            if chunk == b'':
+                return False
+            chunks.append(chunk)
+            bytes_recv = bytes_recv + len(chunk)
+        return self.xor_crypt(b''.join(chunks), self.xor_key).decode('utf-8').strip()
             
     
     def send_msg(self, msg):
+        msg = msg + ' ' * (512 - len(msg))
+        msg = self.xor_crypt(msg.encode('utf-8'), self.xor_key)
+        bytes_sent = 0
+        while bytes_sent < 512:
+            sent = self.socket.send(msg[bytes_sent:])
+            if sent == 0:
+                print('Socket connection broken')
+                return False
+            bytes_sent += sent 
+        return True
+                
+
+    def send_msg2(self, msg):
         try:
-            if msg != 'GOT':
-                while self.blocked:
-                    print('Client still didnt get')
-                self.socket.sendall(self.xor_crypt(msg.encode('utf-8'), self.xor_key))
-                self.blocked = True
-            else:
-                self.socket.sendall(self.xor_crypt(msg.encode('utf-8'), self.xor_key))
+            self.socket.sendall(self.xor_crypt(msg.encode('utf-8'), self.xor_key) + b'\n')
         except ConnectionResetError:
             self.disconnect('connection reset by')
         except ConnectionRefusedError:
@@ -198,19 +201,15 @@ class ConnectedClient(Thread):
                 break
             data_words = client_data.split(' ')
             print(get_date(), 'get', client_data, 'from', self.address)
-            if 'SELECT' in client_data:
+            if data_words[0] == 'SELECT':
                 loop.add_event2({'type':'select',
                                  'x':int(data_words[1]),
                                  'y':int(data_words[2]),
                                  'caller':self
                                  }
                                 )
-                self.send_msg('GOT')
-            elif client_data == 'ACCEPT':
+            elif data_words[0] == 'ACCEPT':
                 loop.add_event2({'type':'accept', 'caller':self})
-                self.send_msg('GOT')
-            elif client_data == 'GOT':
-                self.blocked = False
             else:
                 print(get_date(), 'can\'t recognize:',client_data, 'from', self.address)
                 self.disconnect('Wrong data')
@@ -263,16 +262,16 @@ class Game():
                         #self.white_admisisble = exclude_check_unprotected(figure_type)                                                   
                     elif [x, y] in self.black_figures and self.white_selected_figure:
                         if [x,y] in self.white_admissible:
-                            self.take_figure(self.white_figures, self.black_figures, (x,y), self.white_selected_figure)
-                            self.white_player.send_msg('MOVE ' + json.dumps([[x,y], self.white_selected_figure]))
-                            self.black_player.send_msg('MOVE ' + json.dumps([[x,y], self.white_selected_figure]))
+                            self.take_figure(self.white_figures, self.black_figures, [x,y], self.white_selected_figure)
+                            self.white_player.send_msg('TAKE ' + json.dumps([[x,y], self.white_selected_figure]))
+                            self.black_player.send_msg('TAKE ' + json.dumps([[x,y], self.white_selected_figure]))
                             self.black_step = not self.black_step
                             self.white_step = not self.white_step
                         self.white_admissible = []
                         self.white_selected_figure = [100,100]
                     elif self.field[y][x] == ' ' and self.white_selected_figure:
                         if [x,y] in self.white_admissible:
-                            self.move_figure(self.white_figures, (x,y), self.white_selected_figure)
+                            self.move_figure(self.white_figures, [x,y], self.white_selected_figure)
                             self.white_player.send_msg('MOVE ' + json.dumps([[x,y], self.white_selected_figure]))
                             self.black_player.send_msg('MOVE ' + json.dumps([[x,y], self.white_selected_figure]))
                             self.black_step = not self.black_step
@@ -297,9 +296,9 @@ class Game():
                         figure_type = self.field[y][x]
                     elif [x, y] in self.white_figures and self.black_selected_figure:
                         if [x, y] in self.black_admissible:
-                            self.take_figure(self.black_figures, self.white_figures, (x,y), self.black_selected_figure)
-                            self.white_player.send_msg('MOVE ' + json.dumps([[x,y], self.black_selected_figure]))
-                            self.black_player.send_msg('MOVE ' + json.dumps([[x,y], self.black_selected_figure]))
+                            self.take_figure(self.black_figures, self.white_figures, [x,y], self.black_selected_figure)
+                            self.white_player.send_msg('TAKE ' + json.dumps([[x,y], self.black_selected_figure]))
+                            self.black_player.send_msg('TAKE ' + json.dumps([[x,y], self.black_selected_figure]))
                             self.black_step = not self.black_step
                             self.white_step = not self.white_step
                             self.black_admissible = check_positions_black(self.black_selected_figure,
@@ -311,7 +310,7 @@ class Game():
                             self.black_selected_figure = [100,100]
                     elif self.field[y][x] == ' ' and self.black_selected_figure:
                         if [x, y] in self.black_admissible:
-                            self.move_figure(self.black_figures, (x,y), self.black_selected_figure)
+                            self.move_figure(self.black_figures, [x,y], self.black_selected_figure)
                             self.white_player.send_msg('MOVE ' + json.dumps([[x,y], self.black_selected_figure]))
                             self.black_player.send_msg('MOVE ' + json.dumps([[x,y], self.black_selected_figure]))
                             self.black_step = not self.black_step
@@ -338,12 +337,14 @@ class Game():
 
 
     def move_figure(self,player_figures, new_pos, old_pos):
-        self.field[new_pos[1]][new_pos[0]] = self.field[old_pos[0]][old_pos[1]]
+        print(self.field)
+        self.field[new_pos[1]][new_pos[0]] = self.field[old_pos[1]][old_pos[0]]
         self.field[old_pos[1]][old_pos[0]] = ' '
         player_figures[player_figures.index(old_pos)] = new_pos[:]
+        print(self.field)
         print('figure moved')
 
-VERSION = '0.3'
+VERSION = '0.8'
 ADDRESS, PORT = '127.0.0.1', 6666
 print(get_date(), 'chess game server ' + VERSION + ' running on ' + ADDRESS + ' ' + str(PORT))
 server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, proto=0)
@@ -365,16 +366,3 @@ while True:
     connected_clients.append(new_client)
     new_client.start()
     users += 1
-
-## f - искать игру
-## e - вычти зи игры(поражение)
-## a - принять игру
-## r - отклонить игру
-## s - сделать ход(12.5 шанс луза)
-
-## k - король
-## f - королева (ферзь)
-## b - епископ (слон)
-## r - крепость (ладья)
-## k - рыцарь (конь)
-## p - пешка

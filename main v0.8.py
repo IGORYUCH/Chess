@@ -350,32 +350,35 @@ class PlayerSocket(threading.Thread):
         self.address = address
         self.port = port
         self.xor_key = None
-        self.blocked = False
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.events = []
 
     def get_data(self):
-        try:
-            server_data = self.socket.recv(1024)
-            if not server_data:
-                print('system: disconnected by server')
+        chunks = []
+        bytes_recv = 0
+        while bytes_recv < 512:
+            chunk = self.socket.recv(min(512 - bytes_recv, 2048))
+            if chunk == b'':
                 return False
-        except ConnectionResetError:
-            print('system: disconnected by server (connection reset)')
-        except ConnectionAbortedError:
-            print('system: disconnected by self')
-            return False
-        return self.xor_crypt(server_data, self.xor_key).decode('utf-8')
+            chunks.append(chunk)
+            bytes_recv = bytes_recv + len(chunk)
+        return self.xor_crypt(b''.join(chunks), self.xor_key).decode('utf-8').strip()
+    
 
-    def send_data(self, message):
+    def send_data(self, msg):
+        msg = msg + ' ' * (512 - len(msg))
+        msg = self.xor_crypt(msg.encode('utf-8'), self.xor_key)
+        bytes_sent = 0
+        while bytes_sent < 512:
+            sent = self.socket.send(msg[bytes_sent:])
+            if sent == 0:
+                print('Socket connection broken')
+                return False
+            bytes_sent += sent
+        
+    def send_data2(self, message):
         try:
-            if message != 'GOT':
-                while self.blocked:
-                    print('Server still didnt get')
-                self.socket.send(self.xor_crypt(message.encode('utf-8'), self.xor_key))
-                self.blocked = True
-            else:
-                self.socket.send(self.xor_crypt(message.encode('utf-8'), self.xor_key))
+            self.socket.send(self.xor_crypt(message.encode('utf-8'), self.xor_key) + b'\n')
             return True
         except ConnectionResetError:
             print('system: disconnected by server')
@@ -392,42 +395,30 @@ class PlayerSocket(threading.Thread):
             data_words = server_data.split(' ')
             if data_words[0] == 'MSG':
                 self.events.append({'type':'msg','text':' '.join(data_words[1:])})
-                self.send_data('GOT')
             elif data_words[0] == 'MOVE':
                 self.events.append({'type':'move','positions':json.loads(''.join(data_words[1:]))})
-                self.send_data('GOT')
             elif data_words[0] == 'TAKE':
                 self.events.append({'type':'take','positions':json.loads(''.join(data_words[1:]))})
-                self.send_data('GOT')
             elif data_words[0] == 'END':
                 self.events.append({'type':'gameover','text':''.join(data_words[1:])})
-                self.send_data('GOT')
             elif data_words[0] == 'ACCEPT':
                 self.menu.text_label.set_text('Opponent accepted')
             elif data_words[0] == 'READY':
                 self.menu.text_label.set_text('Game is ready, press "accept" to accept')
                 self.menu.accept_button.enable()
-                self.send_data('GOT')
             elif data_words[0] == 'GAME':
                 self.events.append({'type':'gamebegin'})
-                self.send_data('GOT')
             elif data_words[0] == 'CANCEL':
                 self.menu.text_label.set_text(' '.join(data_words[1:]))
                 self.menu.accept_button.disable()
-                self.send_data('GOT')
             elif data_words[0] == 'ALERT':
                 self.events.append({'type':'alert','text':' '.join(data_words[1:])})
-                self.send_data('GOT')
-            elif data_words[0] == 'GOT':
-                print('GET "GOT" from server')
-                self.blocked = False
             elif data_words[0] == 'LIGHT':
                 print('msg',server_data,'splitted',data_words)
                 self.events.append(
                     {'type':'light','cell':json.loads(''.join(data_words[1:]))
                      }
                     )
-                self.send_data('GOT')
             elif data_words[0] == 'ADMISSIBLE':
                 print('msg',server_data,'splitted',data_words)
                 self.events.append(
@@ -435,10 +426,8 @@ class PlayerSocket(threading.Thread):
                      'admissible_list':json.loads(''.join(data_words[1:]))
                      }
                     )
-                self.send_data('GOT')
             print('server data', server_data)
-            print('server data encrypted', self.xor_crypt(server_data.encode('utf-8'), self.xor_key))
-
+              
     def get_events(self):
         events = deepcopy(self.events)
         self.events = []
