@@ -173,20 +173,6 @@ class ConnectedClient(Thread):
                 return False
             bytes_sent += sent 
         return True
-                
-
-    def send_msg2(self, msg):
-        try:
-            self.socket.sendall(self.xor_crypt(msg.encode('utf-8'), self.xor_key) + b'\n')
-        except ConnectionResetError:
-            self.disconnect('connection reset by')
-        except ConnectionRefusedError:
-            self.disconnect('connection refused by')
-        except TimeoutError:
-            self.disconnect('connection timed out with')
-        else:
-            return True
-        return False
 
 
     def run(self):
@@ -228,8 +214,6 @@ class Game():
         self.black_checkmate = False
         self.white_selected_figure = [100,100]
         self.black_selected_figure = [100,100]
-        self.white_selected_cell = None
-        self.black_selected_cell = None
         self.field = [
                         ['r','h','b','q','k','b','h','r'],
                         ['p','p','p','p','p','p','p','p'],
@@ -301,13 +285,8 @@ class Game():
                             self.black_player.send_msg('TAKE ' + json.dumps([[x,y], self.black_selected_figure]))
                             self.black_step = not self.black_step
                             self.white_step = not self.white_step
-                            self.black_admissible = check_positions_black(self.black_selected_figure,
-                                                                          self.black_figures,
-                                                                          self.white_figures,
-                                                                          self.field)
-                        else:
-                            self.black_admissible = []
-                            self.black_selected_figure = [100,100]
+                        self.black_admissible = []
+                        self.black_selected_figure = [100,100]
                     elif self.field[y][x] == ' ' and self.black_selected_figure:
                         if [x, y] in self.black_admissible:
                             self.move_figure(self.black_figures, [x,y], self.black_selected_figure)
