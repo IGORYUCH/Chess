@@ -243,7 +243,14 @@ class Game():
                                                                  self.black_figures,
                                                                  self.field)
                         figure_type = self.field[y][x]
-                        #self.white_admisisble = exclude_check_unprotected(figure_type)                                                   
+                        figure_pos = [x,y]
+                        self.white_admissible = exclude_check_unprotected(figure_type,
+                                                                          figure_pos,
+                                                                          self.white_admissible,
+                                                                          self.white_figures,
+                                                                          self.black_figures,
+                                                                          check_positions_black,
+                                                                          self.field)                                            
                     elif [x, y] in self.black_figures and self.white_selected_figure:
                         if [x,y] in self.white_admissible:
                             self.take_figure(self.white_figures, self.black_figures, [x,y], self.white_selected_figure)
@@ -278,6 +285,14 @@ class Game():
                                                                       self.white_figures,
                                                                       self.field)
                         figure_type = self.field[y][x]
+                        figure_pos = [x, y]
+                        self.black_admissible = exclude_check_unprotected(figure_type,
+                                                                          figure_pos,
+                                                                          self.black_admissible,
+                                                                          self.black_figures,
+                                                                          self.white_figures,
+                                                                          check_positions_white,
+                                                                          self.field)
                     elif [x, y] in self.white_figures and self.black_selected_figure:
                         if [x, y] in self.black_admissible:
                             self.take_figure(self.black_figures, self.white_figures, [x,y], self.black_selected_figure)
