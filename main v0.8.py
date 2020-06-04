@@ -376,15 +376,6 @@ class PlayerSocket(threading.Thread):
                 return False
             bytes_sent += sent
         
-    def send_data2(self, message):
-        try:
-            self.socket.send(self.xor_crypt(message.encode('utf-8'), self.xor_key) + b'\n')
-            return True
-        except ConnectionResetError:
-            print('system: disconnected by server')
-        except ConnectionAbortedError:
-            print('system: disconnected by self')
-            return False
 
     def run(self):
         connected = self.connect_to_server()
@@ -400,7 +391,7 @@ class PlayerSocket(threading.Thread):
             elif data_words[0] == 'TAKE':
                 self.events.append({'type':'take','positions':json.loads(''.join(data_words[1:]))})
             elif data_words[0] == 'END':
-                self.events.append({'type':'gameover','text':''.join(data_words[1:])})
+                self.events.append({'type':'gameover','text':' '.join(data_words[1:])})
             elif data_words[0] == 'ACCEPT':
                 self.menu.text_label.set_text('Opponent accepted')
             elif data_words[0] == 'READY':

@@ -17,29 +17,32 @@ class EventLoop(Thread):
         self.active_games = []
         self.ready_pairs = []
         
-    def disconnect(client, msg):
-        print(get_date(), msg, client.address)
-        if client.game:
-            if game.white_player == self:
-                game.black_player.send_msg('END Your opponent disconnected. You automatically win')
-                game.black_player.socket.close()
-            else:
-                game.white_player.send_msg('END Your opponent disconnected. You automatically win')
-                game.white_player.socket.close()
-            self.active_games.remove(client.game)
-        elif client in ready_clients:
-            for pair in self.ready_pairs:
-                if client in pair:
-                    if client == pair[0]:
-                        pair[1].send_msg('CANCEL Your opponent disconnected')
-                    else:
-                        pair[0].send_msg('CANCEL Your opponent disconnected')
-                self.ready_pairs.remove(pair)
-        elif client in waiting_clients:
-            waiting_clients.remove(client)
-        connected_clients.remove(client)
-        client.socket.close()
-        
+##    def disconnect(self, client, msg):
+##        print(get_date(), msg, client.address)
+##        client.connected  = False
+##        if client.game:
+##            if client.game.white_player == self:
+##                print('A')
+##                client.game.black_player.send_msg('END Your opponent disconnected. You automatically win')
+##                client.game.black_player.socket.close()
+##            else:
+##                print('B')
+##                client.game.white_player.send_msg('END Your opponent disconnected. You automatically win')
+##                client.game.white_player.socket.close()
+##            self.active_games.remove(client.game)
+##        elif client in ready_clients:
+##            for pair in self.ready_pairs:
+##                if client in pair:
+##                    if client == pair[0]:
+##                        pair[1].send_msg('CANCEL Your opponent disconnected')
+##                    else:
+##                        pair[0].send_msg('CANCEL Your opponent disconnected')
+##                self.ready_pairs.remove(pair)
+##        elif client in waiting_clients:
+##            waiting_clients.remove(client)
+##        connected_clients.remove(client)
+##        client.socket.close()
+##        
         
     def find_pair(self):
         try:
@@ -86,8 +89,8 @@ class EventLoop(Thread):
                         event2['caller'].accepted = True
                     else:
                         event2['caller'].send_msg('MSG game already accepted')
-                elif event2['type'] == 'disconnect':
-                    self.disconnect(event2['caller'], event2['msg'])
+##                elif event2['type'] == 'disconnect':
+##                    self.disconnect(event2['caller'], event2['msg'])
 ##            print(get_date(), 'connected:', len(connected_clients),'waiting:',
 ##                  len(waiting_clients), 'playing:', len(playing_clients),'ready:', len(ready_clients))
 
@@ -119,30 +122,36 @@ class ConnectedClient(Thread):
         self.xor_key = None
         self.name = 'User' + str(users)
         self.accepted = False
-        self.blocked = False
+        self.connected = False
         self.exceed_time = 10
         self.game = None
 
-
-    def disconnect(self, reason) -> None:
-        print(get_date(), reason, self.address)
-        if self in playing_clients:
-            self.opponent.step = False
-            playing_clients.remove(self)
-            playing_clients.remove(self.opponent)
-            self.opponent.send_msg('ALERT Your opponent disconnected. You autimatically win')
-            self.opponent.opponent = None
+        
+    def disconnect(self, msg):
+        print(get_date(), msg, self.address)
+        self.connected  = False
+        if self.game:
+            if self.game.white_player == self:
+                print('A')
+                self.game.black_player.send_msg('END Your opponent disconnected. You automatically win')
+            else:
+                print('B')
+                self.game.white_player.send_msg('END Your opponent disconnected. You automatically win')
+            loop.active_games.remove(self.game)
         elif self in ready_clients:
-            self.opponent.accepted = False
-            self.opponent.exceed_time = 1000
-            ready_clients.remove(self.opponent)
-            ready_clients.remove(self)
-            self.opponent.send_msg('CANCEL Your opponent disconnected')
+            for pair in loop.ready_pairs:
+                if self in pair:
+                    if self == pair[0]:
+                        pair[1].send_msg('CANCEL Your opponent disconnected')
+                    else:
+                        pair[0].send_msg('CANCEL Your opponent disconnected')
+                loop.ready_pairs.remove(pair)
         elif self in waiting_clients:
             waiting_clients.remove(self)
         connected_clients.remove(self)
         self.socket.close()
-        
+
+
     def xor_crypt(self, string:bytes, key:bytes) -> bytes:
         key_len = len(key)
         fitted_key = bytes(key[index % key_len] for index in range(len(string)))
@@ -154,26 +163,34 @@ class ConnectedClient(Thread):
         chunks = []
         bytes_recv = 0
         while bytes_recv < 512:
-            chunk = self.socket.recv(min(512 - bytes_recv, 2048))
+            try:
+                chunk = self.socket.recv(min(512 - bytes_recv, 2048))
+            except ConnectionError:
+                print('ConnectionError1', self.name)
+                return False
             if chunk == b'':
+                print('Socket connection broken1')
                 return False
             chunks.append(chunk)
             bytes_recv = bytes_recv + len(chunk)
         return self.xor_crypt(b''.join(chunks), self.xor_key).decode('utf-8').strip()
-            
-    
+
+
     def send_msg(self, msg):
         msg = msg + ' ' * (512 - len(msg))
         msg = self.xor_crypt(msg.encode('utf-8'), self.xor_key)
         bytes_sent = 0
         while bytes_sent < 512:
-            sent = self.socket.send(msg[bytes_sent:])
+            try:
+                sent = self.socket.send(msg[bytes_sent:])
+            except ConnectionError:
+                print('ConnectionError2')
+                return False
             if sent == 0:
-                print('Socket connection broken')
+                print('Socket connection broken2')
                 return False
             bytes_sent += sent 
         return True
-
 
     def run(self):
         self.socket.send(public.save_pkcs1())
@@ -181,9 +198,12 @@ class ConnectedClient(Thread):
         self.xor_key = rsa.decrypt(raw_xor_key, private)
         print(get_date(),'secure key received from', self.address)
         waiting_clients.append(self)
-        while True:
+        self.connected = True
+        while self.connected:
             client_data = self.get_msg()
             if not client_data:
+##                loop.add_event2({'type':'disconnect', 'msg':'Connection error', 'caller':self})
+                self.disconnect('Connection error')
                 break
             data_words = client_data.split(' ')
             print(get_date(), 'get', client_data, 'from', self.address)
@@ -197,8 +217,9 @@ class ConnectedClient(Thread):
             elif data_words[0] == 'ACCEPT':
                 loop.add_event2({'type':'accept', 'caller':self})
             else:
-                print(get_date(), 'can\'t recognize:',client_data, 'from', self.address)
                 self.disconnect('Wrong data')
+                print(get_date(), 'can\'t recognize:',client_data, 'from', self.address)
+##                loop.add_event({'type':'disconnect','msg':'Wrong data' ,'caller':self})
                 break
 
 class Game():
@@ -327,17 +348,14 @@ class Game():
         self.field[new_pos[1]][new_pos[0]] = self.field[old_pos[1]][old_pos[0]]
         self.field[old_pos[1]][old_pos[0]] = ' '
         player_figures[player_figures.index(old_pos)] = new_pos[:]
-        print('figure taken')
 
 
     def move_figure(self,player_figures, new_pos, old_pos):
-        print(self.field)
         self.field[new_pos[1]][new_pos[0]] = self.field[old_pos[1]][old_pos[0]]
         self.field[old_pos[1]][old_pos[0]] = ' '
         player_figures[player_figures.index(old_pos)] = new_pos[:]
-        print(self.field)
-        print('figure moved')
 
+     
 VERSION = '0.8'
 ADDRESS, PORT = '127.0.0.1', 6666
 print(get_date(), 'chess game server ' + VERSION + ' running on ' + ADDRESS + ' ' + str(PORT))
