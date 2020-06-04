@@ -138,18 +138,20 @@ class ConnectedClient(Thread):
                 print('B')
                 self.game.white_player.send_msg('END Your opponent disconnected. You automatically win')
             loop.active_games.remove(self.game)
-        elif self in ready_clients:
-            for pair in loop.ready_pairs:
-                if self in pair:
-                    if self == pair[0]:
-                        pair[1].send_msg('CANCEL Your opponent disconnected')
-                    else:
-                        pair[0].send_msg('CANCEL Your opponent disconnected')
-                loop.ready_pairs.remove(pair)
         elif self in waiting_clients:
             waiting_clients.remove(self)
+        for pair in loop.ready_pairs:
+            if self in pair:
+                print('1')
+                if self == pair[0]:
+                    pair[1].send_msg('CANCEL Your opponent disconnected')
+                    print('2')
+                else:
+                    pair[0].send_msg('CANCEL Your opponent disconnected')
+                    print('3')
+                break
+            loop.ready_pairs.remove(pair)
         connected_clients.remove(self)
-        self.socket.close()
 
 
     def xor_crypt(self, string:bytes, key:bytes) -> bytes:
@@ -365,7 +367,6 @@ public, private = rsa.newkeys(1024)
 print(get_date(), 'key pair generated')
 connected_clients = []
 waiting_clients = []
-ready_clients = []
 playing_clients = []
 active_games = []
 users = 0

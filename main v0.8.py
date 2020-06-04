@@ -357,8 +357,9 @@ class PlayerSocket(threading.Thread):
         chunks = []
         bytes_recv = 0
         while bytes_recv < 512:
-            chunk = self.socket.recv(min(512 - bytes_recv, 2048))
-            if chunk == b'':
+            try:
+                chunk = self.socket.recv(min(512 - bytes_recv, 2048))
+            except ConnectionError:
                 return False
             chunks.append(chunk)
             bytes_recv = bytes_recv + len(chunk)
@@ -370,9 +371,11 @@ class PlayerSocket(threading.Thread):
         msg = self.xor_crypt(msg.encode('utf-8'), self.xor_key)
         bytes_sent = 0
         while bytes_sent < 512:
-            sent = self.socket.send(msg[bytes_sent:])
+            try:
+                sent = self.socket.send(msg[bytes_sent:])
+            except ConnectionError:
+                return False
             if sent == 0:
-                print('Socket connection broken')
                 return False
             bytes_sent += sent
         
