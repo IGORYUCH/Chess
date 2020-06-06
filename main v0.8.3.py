@@ -4,7 +4,6 @@ import socket
 import rsa
 import threading
 from copy import deepcopy
-from random import randrange as r
 from random import choice
 from webbrowser import open_new_tab
 import json
@@ -15,55 +14,34 @@ def err_handler(function):
             result = function(*args,**kwargs)
             return result
         except Exception as err:
-            add_str('An error occured in ', function.__name__)
-            show_alert('An error occured. Check error_log.txt', pygame_gui.UIManager((SIZE_X, SIZE_Y)))
+            show_alert('An error occured. Check error_log.txt', ui_manager)
             with open('error_log.txt','a') as err_file:
                 err_file.write('[' + ctime() + '] ' + 'in' + function.__name__ + ' ' + str(err.args) + '\n')
     return wrapper
 
 @err_handler
-def init_background(surface, cell_size = 50):
-    grid_colors = [(200,200,200),(50,50,50)]
+def init_background(surface, white_color, black_color, cell_size = 50):
+    field_colors = [white_color, black_color]
     s = 0
     c_x = surface.get_width()//cell_size
     c_y = surface.get_height()//cell_size
     for y in range(c_y):
         for x in range(c_x):
-            pygame.draw.rect(surface, grid_colors[s%2], (x*cell_size, y*cell_size, cell_size, cell_size), 0)
+            pygame.draw.rect(surface, field_colors[s%2], (x*cell_size, y*cell_size, cell_size, cell_size), 0)
             s +=1
         s+=1
 
-@err_handler
 def play_offline():
-    game = True
-    window_surface.fill((128,128,128))
-    text_font = pygame.font.SysFont('arial', 24)
-    escape_text = text_font.render('Press ESCAPE to run menu', 0, (0,0,0))
-    while game:
-        time_delta = clock.tick(FPS)/1000.0
-        for event in pygame.event.get():
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:
-                    x = pygame.mouse.get_pos()[0]
-                    y = pygame.mouse.get_pos()[1]
-                    pygame.draw.rect(window_surface,(r(255),r(255),r(255)),(x,y, 10,10),0)
-                elif event.button == 3:
-                    pass
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    should_exit = show_in_game_menu(pygame_gui.UIManager((SIZE_X, SIZE_Y)))
-                    if should_exit:
-                        return
-        window_surface.blit(escape_text, (5,5))
-        pygame.display.update()
+    show_alert('Not implemented yet', ui_manager)
 
 
 def play_with_bot():
-    pass
+    show_alert('Not implemented yet', ui_manager)
+
 
 @err_handler
 def play_online(sock):
-    
+
     def draw_figures(screen): # Рисует изображения фигур на поверхности
         for figure in black_figures:
             x = figure[0] * CELL_SIZE + FIGURE_START_POS[0]
@@ -76,7 +54,7 @@ def play_online(sock):
             if black_pictures[field[figure[1]][figure[0]]]:
                 screen.blit(white_pictures[field[figure[1]][figure[0]]], (x, y))
 
-                
+
     def init_pictures(folder = 'pictures'): # Формирует массив из изображений фигур, взятых из папки
 
         def init_picture(file,colorkey = (0,255,0)): # Загружает файл картинки и подгоняет его под установленный размер фигуры внутри ячейки
@@ -122,10 +100,10 @@ def play_online(sock):
 
     def move_figure(player_figures, new_pos, old_pos):
         field[new_pos[1]][new_pos[0]] = field[old_pos[1]][old_pos[0]] # Перемещаем фигуру на новое место
-        field[old_pos[1]][old_pos[0]] = ' ' 
+        field[old_pos[1]][old_pos[0]] = ' '
         player_figures[player_figures.index(old_pos)] = new_pos[:]
 
-    
+
     black_pictures = {}
     white_pictures = {}
     field_screen = pygame.Surface((FIELD_LENGTH, FIELD_LENGTH))
@@ -282,6 +260,7 @@ def show_settings_menu(manager):
                         back = True
                     elif event.ui_element == settings_menu.restore_default_button:
                         restore_default()
+                        settings_menu.window.kill()
                         settings_menu = SettingsMenu(250,100, manager)
             manager.process_events(event)
         manager.update(time_delta)
@@ -369,7 +348,7 @@ class PlayerSocket(threading.Thread):
             chunks.append(chunk)
             bytes_recv = bytes_recv + len(chunk)
         return self.xor_crypt(b''.join(chunks), self.xor_key).decode('utf-8').strip()
-    
+
     @err_handler
     def send_data(self, msg):
         msg = msg + ' ' * (512 - len(msg))
@@ -383,7 +362,7 @@ class PlayerSocket(threading.Thread):
             if sent == 0:
                 return False
             bytes_sent += sent
-        
+
     @err_handler
     def run(self):
         connected = self.connect_to_server()
@@ -424,12 +403,12 @@ class PlayerSocket(threading.Thread):
                      }
                     )
             print('server data', server_data)
-              
+
     def get_events(self):
         events = deepcopy(self.events)
         self.events = []
         return events
-    
+
     def connect_to_server(self):
         try:
             self.socket.connect((ADDRESS, PORT))
@@ -580,6 +559,11 @@ class MainMenu():
         self.window = pygame_gui.elements.ui_window.UIWindow(rect = pygame.Rect(startX, startY, 300, 400),
                                                                 manager = manager,
                                                                 window_display_title = 'Chess v0.7')
+        #self.window.enable_close_button = 1
+        self.window.close_window_button.kill()
+        print(dir(self.window))
+        print(dir(self.window.title_bar.rect))
+        self.window.title_bar.rect.width = 320
         self.play_online_button = pygame_gui.elements.UIButton(relative_rect = pygame.Rect(40,10,self.width, self.height),
                                                                 text='Play online',
                                                                 manager = manager,
@@ -629,7 +613,7 @@ def init_chess_field(surface): #
 def save_changes(menu):
     if len(menu.nickname_line.get_text().strip()) < 13:
         if len(menu.nickname_line.get_text().strip()) > 3:
-                    
+
             settings = {'cell_white_color':json.loads(menu.white_cell_line.get_text()),
                         'cell_black_color':json.loads(menu.black_cell_line.get_text()),
                         'nickname':menu.nickname_line.get_text().strip().replace(' ', '_'),
@@ -644,15 +628,16 @@ def save_changes(menu):
 ##                    print(err)
 ##                    show_alert('Error during settings load',pygame_gui.UIManager((SIZE_X, SIZE_Y)))
             load_settings()
+            init_background(background_surface, CELL_WHITE, CELL_BLACK)
             return True
-            
+
         else:
             show_alert('Nickname length should be more than 3 symbols', pygame_gui.UIManager((SIZE_X, SIZE_Y)))
-            
+
     else:
         show_alert('Nickname length should be less than 13 symbols', pygame_gui.UIManager((SIZE_X, SIZE_Y)))
     return False
-            
+
 
 @err_handler
 def restore_default():
@@ -673,6 +658,7 @@ def restore_default():
                 'cell_hints':CELL_HINTS}
     with open('config.json', 'w') as file:
         json.dump(settings, file)
+    init_background(background_surface, CELL_WHITE, CELL_BLACK)
 
 @err_handler
 def load_settings():
@@ -690,12 +676,12 @@ def load_settings():
     except Exception as err:
         restore_default()
         show_alert('Error during settings load. Default restored',pygame_gui.UIManager((SIZE_X, SIZE_Y)))
-        
-        
+
+
 
 load_settings()
-VERSION = '0.7.4'
-FPS = 60
+VERSION = '0.8.3'
+FPS = 30
 SIZE_X, SIZE_Y = 800, 600
 FIELD_START_POS = [5,5]
 FIELD_LENGTH = 400
@@ -709,7 +695,7 @@ pygame.init()
 pygame.display.set_caption('Chess game')
 window_surface = pygame.display.set_mode((SIZE_X, SIZE_Y))
 background_surface = pygame.Surface((SIZE_X, SIZE_Y))
-init_background(background_surface)
+init_background(background_surface, CELL_WHITE, CELL_BLACK)
 ui_manager = pygame_gui.UIManager((SIZE_X, SIZE_Y))
 main_menu = MainMenu(250, 100, ui_manager)
 clock = pygame.time.Clock()
