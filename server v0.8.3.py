@@ -282,9 +282,12 @@ class Game():
                                                                self.white_figures,
                                                                check_positions_white,
                                                                self.field)
-                    
-                    
-                    
+                    if self.black_checkmate:
+                        self.black_player.send_msg('END You lose!')
+                        self.white_player.send_msg('END You win!')
+                    elif self.white_checkmate:
+                        self.white_player.send_msg('END You lose!')
+                        self.black_player.send_msg('END You win')
                 else:
                     self.white_player.send_msg('ALERT not your step')
             else:
@@ -313,30 +316,6 @@ class Game():
                             self.white_step = not self.white_step
                         self.black_admissible = []
                         self.black_selected_figure = [100,100]
-                        self.white_check = check_shah(self.white_figures,
-                                                      self.black_figures,
-                                                      check_positions_black,
-                                                      self.field)
-                        self.black_check = check_shah(self.black_figures,
-                                                      self.white_figures,
-                                                      check_positions_white,
-                                                      self.field)
-                        self.white_checkmate = check_checkmate(self.white_figures,
-                                                               check_positions_white,
-                                                               self.black_figures,
-                                                               check_positions_black,
-                                                               self.field)
-                        self.black_checkmate = check_checkmate(self.black_figures,
-                                                               checkpositions_black,
-                                                               self.white_figures,
-                                                               check_positons_white,
-                                                               self.field)
-                        if self.black_checkmate:
-                            self.black_player.send_msg('END You win!')
-                            self.white_player.send_msg('END You lose!')
-                        elif self.white_checkmate:
-                            self.white_player.send_msg('END You win!')
-                            self.black_player.send_msg('END You lose')
                     elif self.field[y][x] == ' ' and self.black_selected_figure:
                         if [x, y] in self.black_admissible:
                             self.move_figure(self.black_figures, [x,y], self.black_selected_figure)
@@ -367,11 +346,11 @@ class Game():
                                                                check_positions_white,
                                                                self.field)
                     if self.black_checkmate:
-                        self.black_player.send_msg('END You win!')
-                        self.white_player.send_msg('END You lose!')
-                    elif self.white_checkmate:
+                        self.black_player.send_msg('END You lose!')
                         self.white_player.send_msg('END You win!')
-                        self.black_player.send_msg('END You lose')
+                    elif self.white_checkmate:
+                        self.white_player.send_msg('END You lose!')
+                        self.black_player.send_msg('END You win!')
 ##                    player.send_msg('MSG Opponent\'s step')
 ##                    self.white_player.send_msg('MSG Your step')
                 else:
