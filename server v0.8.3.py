@@ -63,10 +63,7 @@ class EventLoop(Thread):
                         event2['caller'].accepted = True
                     else:
                         event2['caller'].send_msg('MSG game already accepted')
-##                elif event2['type'] == 'disconnect':
-##                    self.disconnect(event2['caller'], event2['msg'])
-##            print(get_date(), 'connected:', len(connected_clients),'waiting:',
-##                  len(waiting_clients), 'playing:', len(playing_clients),'ready:', len(ready_clients))
+
 
     def get_events2(self):
         events2 = self.events2[:]
@@ -171,7 +168,6 @@ class ConnectedClient(Thread):
         while self.connected:
             client_data = self.get_msg()
             if not client_data:
-##                loop.add_event2({'type':'disconnect', 'msg':'Connection error', 'caller':self})
                 self.disconnect('Connection error')
                 break
             data_words = client_data.split(' ')
@@ -222,7 +218,6 @@ class Game():
         self.white_admissible = []
 
     def do_step(self, player, x, y):
-        print('step','white',self.white_step,'black',self.black_step)
         if (0 <= x <= 7) and (0 <= y <= 7):
             if player == self.white_player:
                 if self.white_step:
@@ -351,8 +346,6 @@ class Game():
                     elif self.white_checkmate:
                         self.white_player.send_msg('END You lose!')
                         self.black_player.send_msg('END You win!')
-##                    player.send_msg('MSG Opponent\'s step')
-##                    self.white_player.send_msg('MSG Your step')
                 else:
                     self.black_player.send_msg('ALERT not your step')
 

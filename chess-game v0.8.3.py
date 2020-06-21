@@ -443,7 +443,6 @@ class ServerMenu():
                                                                 text = 'Connecting to server...',
                                                                 manager = manager,
                                                                 container = self.window)
-##        print(dir(self.text_label))
         self.accept_button = pygame_gui.elements.UIButton(relative_rect = pygame.Rect(10,100,120,30),
                                                                 text = 'Accept',
                                                                 manager = manager,
@@ -477,7 +476,6 @@ class SettingsMenu():
                                                                 manager = manager, options_list = ['Easy', 'Medium', 'Hard'],
                                                                 starting_option = DIFFICULTY,
                                                                 container = self.window)
-##        print(dir(self.bot_difficulty_drop_down_menu))
         self.ip_address_label = pygame_gui.elements.UILabel(relative_rect = pygame.Rect(5, 85, 120, 20),
                                                                 text = 'Server IP',
                                                                 manager = manager,
@@ -559,10 +557,7 @@ class MainMenu():
         self.window = pygame_gui.elements.ui_window.UIWindow(rect = pygame.Rect(startX, startY, 300, 400),
                                                                 manager = manager,
                                                                 window_display_title = 'Chess v0.7')
-        #self.window.enable_close_button = 1
         self.window.close_window_button.kill()
-        print(dir(self.window))
-        print(dir(self.window.title_bar.rect))
         self.window.title_bar.rect.width = 320
         self.play_online_button = pygame_gui.elements.UIButton(relative_rect = pygame.Rect(40,10,self.width, self.height),
                                                                 text='Play online',
@@ -590,7 +585,7 @@ class MainMenu():
                                                                 container = self.window)
 
 @err_handler
-def init_chess_field(surface): #
+def init_chess_field(surface): 
     grid = 1
     grid_colors = (CELL_WHITE, CELL_BLACK)
     for x in range(8):
@@ -624,9 +619,6 @@ def save_changes(menu):
                         }
             with open('config.json' ,'w') as file:
                 json.dump(settings, file)
-##                except Exception as err:
-##                    print(err)
-##                    show_alert('Error during settings load',pygame_gui.UIManager((SIZE_X, SIZE_Y)))
             load_settings()
             init_background(background_surface, CELL_WHITE, CELL_BLACK)
             return True
