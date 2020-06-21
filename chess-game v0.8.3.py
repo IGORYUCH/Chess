@@ -123,14 +123,13 @@ def play_online(sock):
             ]
 
     game = True
-    window_surface.fill((128,128,128))
-    pygame.display.flip()
     selected_cell = [100,100]
     admissible = []
     text_font = pygame.font.SysFont('arial', 18)
     status_text = text_font.render('STATUS TEXT', 0, (0,0,0))
     while game:
         time_delta = clock.tick(FPS)/1000.0
+        window_surface.fill((128,128,128))
         window_surface.blit(field_screen, FIELD_START_POS)
         draw_figures(window_surface)
         if selected_cell != [100,100]:
@@ -140,14 +139,15 @@ def play_online(sock):
                           CELL_SIZE,
                           CELL_SIZE),
                          3)
-        for x,y in admissible:
-            pygame.draw.rect(window_surface,
-                             (255,255,0),
-                             (x*CELL_SIZE + FIELD_START_POS[0],
-                              y*CELL_SIZE + FIELD_START_POS[1],
-                              CELL_SIZE,
-                              CELL_SIZE),
-                             3)
+        if CELL_HINTS == 'Yes':
+            for x,y in admissible:
+                pygame.draw.rect(window_surface,
+                                 (255,255,0),
+                                 (x*CELL_SIZE + FIELD_START_POS[0],
+                                  y*CELL_SIZE + FIELD_START_POS[1],
+                                  CELL_SIZE,
+                                  CELL_SIZE),
+                                 3)
         for event2 in sock.get_events():
             if event2['type'] == 'gameover':
                 show_alert(event2['text'], pygame_gui.UIManager((SIZE_X, SIZE_Y)))
